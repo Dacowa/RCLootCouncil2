@@ -1,6 +1,7 @@
 ## Bugfixes
 
 - *Awards sent to guild wouldn't be properly recorded for non-raid members.*
+- *Fixed issue with award later trade timer warning.*
 
 # 3.21.0
 
