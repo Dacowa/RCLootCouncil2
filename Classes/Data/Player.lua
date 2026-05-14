@@ -187,7 +187,7 @@ end
 --- @param player Player
 --- @return nil
 function private:UpdateCachedPlayer(player)
-	if not (player and player.guid) then
+	if not (player and player.guid) or player.guid and player.guid == "" then
 		return Log:W("UpdateCachedPlayer - no player or player guid", player.name, player.guid)
 	end
 	local name, realm, class = self:GetPlayerInfoByGUID(player.guid)
