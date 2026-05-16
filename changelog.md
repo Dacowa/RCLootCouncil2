@@ -1,3 +1,9 @@
+## Changes
+
+### Bonus rolls
+
+Bonus rolls now shows up beneath the Voting Frame.
+
 ## Bugfixes
 
 - *Awards sent to guild wouldn't be properly recorded for non-raid members.*
