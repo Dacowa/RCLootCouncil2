@@ -371,10 +371,13 @@ function RCLootCouncil:DoChatHook()
 	if not validateChatFrame() then
 		self:Print("Warning: Your chat frame", db.chatFrameName, "doesn't exist. ChatFrame has been reset.")
 		self.Log:e("ChatFrameName validation failed, resetting...")
-		db.chatFrameName = self.defaults.profile.chatFrameName
+		db.chatFrameName = getglobal(self.defaults.profile.chatFrameName).name
 	end
 	-- Pass our channel to the original function and magic appears.
-	self:RawHook(self, "Print", function(_, ...) self.hooks[self].Print(self, getglobal(db.chatFrameName), ...) end, true)
+	self:RawHook(self, "Print", function(_, ...)
+		self.hooks[self].Print(self, getglobal(db.chatFrameName), ...)
+		self.Log:f("<PRINT>", ...)
+	end, true)
 end
 
 function RCLootCouncil:PrintMLChatHelp()
