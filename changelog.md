@@ -6,6 +6,10 @@
 
 Bonus rolls now shows up beneath the Voting Frame.
 
+### History
+
+Added option for toggling the recording of bonus rolls.
+
 ## Bugfixes
 
 - *Awards sent to guild wouldn't be properly recorded for non-raid members.*
