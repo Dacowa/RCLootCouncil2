@@ -288,7 +288,9 @@ function RCLootCouncil:OnEnable()
 	end
 	self.player = Player:Get("player")
 	self.playerName = self.player:GetName() -- TODO Remove
-	self.Log(self.playerName, self.version, self.tVersion)
+	-- Fetch version again, as Classic will need to override it with its own version to handle its version checks.
+	local version = C_AddOns.GetAddOnMetadata("RCLootCouncil", "Version")
+	self.Log(self.playerName, version, self.tVersion)
 
 	self.EJLatestInstanceID = self:GetEJLatestInstanceID()
 	self:DoChatHook()
@@ -318,11 +320,11 @@ function RCLootCouncil:OnEnable()
 	self:ActivateSkin(db.currentSkin)
 
 	if self.db.global.version then -- Intentionally run before updating global.version
-		self.Compat:Run() -- Do compatibility changes
+		self.Compat:Run(version) -- Do compatibility changes
 	end
 
-	if self:VersionCompare(self.db.global.version, self.version) then self.db.global.oldVersion = self.db.global.version end
-	self.db.global.version = self.version
+	if self:VersionCompare(self.db.global.version, version) then self.db.global.oldVersion = self.db.global.version end
+	self.db.global.version = version
 
 	if self.db.global.tVersion and self.debug then -- recently ran a test version, so reset debugLog
 		self.db.global.log = {}

@@ -11,7 +11,7 @@ addon.Compat = Compat
 -- Initially called in `RCLootCouncil:OnEnable()`
 -- Note: Nothing is run on first installs.
 -- Each compat can only be run once per login, so feel free to call it again.
-function Compat:Run()
+function Compat:Run(version)
 	for k, v in ipairs(self.list) do
 		if v.version == "always" or ((v.tVersion
 					and addon.Utils:CheckOutdatedVersion(addon.db.global.version, v.version,
@@ -22,7 +22,7 @@ function Compat:Run()
 					== addon.VER_CHECK_CODES[2] or not addon.db.global.version))
 			and not v.executed then
 			addon.Log("<Compat>", "Executing:", k, v.name or "no_name")
-			local check, err = pcall(v.func, addon, addon.version,
+			local check, err = pcall(v.func, addon, version,
 				addon.db.global.version, addon.db.global.oldVersion)
 			v.executed = true
 			if not check then addon.Log:E("<Compat>", err) end
