@@ -1,3 +1,9 @@
+## Changes
+
+### BoEs
+
+BoEs looted in a boss fight will now be sent to the group leader after the fight ends.
+
 # 3.21.1
 
 ## Changes

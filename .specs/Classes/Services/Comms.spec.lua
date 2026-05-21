@@ -7,6 +7,8 @@ local addon = {
 	defaults = { global = { logMaxEntries = 2000, },
 	},
 	IsRestricted = function() return false end,
+	RegisterEvent = function() end,
+	Log = {d = function(self, ...) end},
 }
 loadfile(".specs/AddonLoader.lua")(nil, nil, addon).LoadArray {
 	[[Libs\LibStub\LibStub.lua]],
@@ -537,5 +539,28 @@ describe("#Services #Comms #Restricted", function()
 		}
 		WoWAPI_FireUpdate(GetTime() + 10)
 		assert.spy(onReceiveSpy).was_called(1)
+		m:revert()
+	end)
+	it("should send guaranteed comms after restrictions end", function()
+		Comms:Send {
+			prefix = addon.PREFIXES.MAIN,
+			command = "test",
+			data = "test",
+		}
+		WoWAPI_FireUpdate(GetTime() + 10)
+		assert.spy(onReceiveSpy).was_called(1)
+		local CommsRestrictions = addon.Require "Services.CommsRestrictions"
+		CommsRestrictions:OnEnable()
+		CommsRestrictions:ChangeEvent(nil, Enum.AddOnRestrictionType.Encounter, Enum.AddOnRestrictionState.Active)
+		Comms:SendGuaranteed {
+			prefix = addon.PREFIXES.MAIN,
+			command = "test",
+			data = "test",
+		}
+		WoWAPI_FireUpdate(GetTime() + 10)
+		assert.spy(onReceiveSpy).was_called(1)
+		CommsRestrictions:ChangeEvent(nil, Enum.AddOnRestrictionType.Encounter, Enum.AddOnRestrictionState.Inactive)
+		WoWAPI_FireUpdate(GetTime() + 10)
+		assert.spy(onReceiveSpy).was_called(2)
 	end)
 end)
