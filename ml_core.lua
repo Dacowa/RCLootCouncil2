@@ -755,6 +755,7 @@ end
 
 function RCLootCouncilML:UpdateLootSlots()
 	if not addon.lootOpen then return self.Log:d("ML:UpdateLootSlots() without loot window open!!") end
+	if addon.lootMethod ~= Enum.LootMethod.Masterlooter then return end
 	local updatedLootSlot = {}
 	for i = 1, GetNumLootItems() do
 		local item = GetLootSlotLink(i)
