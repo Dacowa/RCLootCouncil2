@@ -339,6 +339,15 @@ function RCLootCouncil:OnEnable()
 	ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", filterFunc)
 	self:CouncilChanged() -- Call to initialize council
 	self:ModulesOnEnable()
+	-- Print unknown module versions
+	self:ScheduleTimer(function()
+		for name, module in self:IterateModules() do
+			if not tContains(defaultModules, name) then
+				local isAddon = C_AddOns.IsAddOnLoaded(module.baseName)
+				self.Log:D(name, isAddon and C_AddOns.GetAddOnMetadata(module.baseName, "Version") or module.version or "unknown version")
+			end
+		end
+	end, 1)
 end
 
 function RCLootCouncil:OnDisable()
