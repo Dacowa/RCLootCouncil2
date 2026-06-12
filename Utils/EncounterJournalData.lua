@@ -2166,6 +2166,11 @@ _G.RCTrinketSpecs = {
 	-- Skyreach Mythic (id: 476).
 	-- Skyreach Timewalking (id: 476).
 	-- Keystone Dungeons Mythic (id: 1319).
+	-- Sporefall Normal (id: 1305).
+	[268292] = "77F7777777777", -- Sporelord's Mycelial Insignia,       	All Classes
+	-- Sporefall Heroic (id: 1305).
+	-- Sporefall Mythic (id: 1305).
+	-- Sporefall Looking For Raid (id: 1305).
 }
 
 --- Items listed as rare or above in the encounter journal.

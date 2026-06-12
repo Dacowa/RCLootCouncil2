@@ -42,7 +42,7 @@ function RCLootCouncil:ExportTokenData(nextID)
 			.. "Dont run any extra /rc exporttokendata when it is running."
 			.. "Commented lines in exports mean not sure and need to manually determine it.")
 	end
-	local LAST_ID = 250000
+	local LAST_ID = 400000
 	for i = nextID, LAST_ID do
 		local _, _, _, _, _, typeID, subTypeID = C_Item.GetItemInfoInstant(i)
 		if typeID == 15 and subTypeID == 0 then -- Miscellaneous, Junk
