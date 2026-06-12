@@ -291,7 +291,15 @@ end
 function RCLootCouncilML:AddUserItem(item, username)
 	if type(tonumber(item)) == "number" or string.find(item, "item:") then -- Ensure we can handle it
 		self:AddItem(item, false, nil, username) -- The item is neither bagged nor in the loot slot.
-		self:ShowSessionFrame()
+		if db.autoStart and addon.candidatesInGroup[addon.playerName] and Council:GetNum() > 0 then -- Auto start only if data is ready
+			if db.awardLater then
+				self:DoAwardLater(self.lootTable)
+			else
+				self:StartSession()
+			end
+		else
+			self:ShowSessionFrame(self.lootTable)
+		end
 	else
 		addon:Print(format(L["ML_ADD_INVALID_ITEM"], tostring(item)))
 	end
