@@ -1,10 +1,14 @@
+# 3.22.0
+
 ## Changes
 
 Updated for patch 12.0.7.
 
 ### BoEs
 
-BoEs looted in a boss fight will now be sent to the group leader after the fight ends.
+BoEs looted during a boss fight will now be sent to the group leader after the fight ends.
+
+## Bugfixes
 
 - *Award later now works with group loot*
 
