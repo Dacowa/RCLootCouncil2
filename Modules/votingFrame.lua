@@ -113,6 +113,7 @@ function RCVotingFrame:OnEnable()
 	self:UpdateItemAwardHistory()
 	self.frame = self:GetFrame()
 	guildRanks = addon:GetGuildRanks()
+	self.delayedLootAcks = {}
 	addon.Log("RCVotingFrame", "enabled")
 	updateFrame:Show()
 	needUpdate = false
@@ -279,6 +280,15 @@ function RCVotingFrame:ReceiveLootTable(lt)
 	lootTable = CopyTable(lt)
 	self:Setup(lootTable)
 	self:UpdateItemAwardHistory()
+
+	if #self.delayedLootAcks > 0 then
+		addon.Log:D("Processing delayed lootAcks. Count:", #self.delayedLootAcks)
+		for _,data in ipairs(self.delayedLootAcks) do
+			self:OnLootAckReceived(unpack(data))
+		end
+		wipe(self.delayedLootAcks)
+	end
+
 	if not addon.enabled then return end -- We just want things ready
 	if db.autoOpen then
 		self:Show()
@@ -294,6 +304,7 @@ function RCVotingFrame:EndSession(hide)
 		self:Update(true)
 		if hide then self:Hide() end -- Hide if need be
 	end
+	wipe(self.delayedLootAcks)
 end
 
 --- Removes a specific entry from the voting frame's columns
@@ -575,6 +586,12 @@ function RCVotingFrame:OnChangeToWaitReceived(data)
 end
 
 function RCVotingFrame:OnLootAckReceived (name, specID, ilvl, sessionData)
+	if not lootTable[#sessionData] or not lootTable[#sessionData].candidates[name] then
+		-- LootAck received before lootTable
+		tinsert(self.delayedLootAcks , { name, specID, ilvl, sessionData })
+		addon.Log:W("Received LootAck before lootTable, delaying processing. Name:", name)
+		return
+	end
 	for k,d in pairs(sessionData) do
 		for ses, v in pairs(d) do
 			if k == "gear1" or k == "gear2" then
