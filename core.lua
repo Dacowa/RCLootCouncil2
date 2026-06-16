@@ -2461,7 +2461,7 @@ end
 ---@param text string Text to wrap.
 function RCLootCouncil:WrapTextInClassColor(class, text)
 	local color = GetClassColorObj(class)
-	return color and color:WrapTextInColorCode(text) or text
+	return color and color:WrapTextInColorCode(text or "") or text or ""
 end
 
 --- Creates a string with class icon in front of a class colored name of the player.
