@@ -191,7 +191,6 @@ end
 ---@param overrideIsSent boolean @Ignores .isSent status and adds the item anyway.
 ---@return table LootTable
 function RCLootCouncilML:GetLootTableForTransmit(overrideIsSent)
-	local skipDefaultTypeCode = addon.Utils:GroupHasVersion("3.15.4")
 	local ret = {}
 	for k, v in pairs(self.lootTable) do
 		ret[k] = {}
@@ -199,9 +198,7 @@ function RCLootCouncilML:GetLootTableForTransmit(overrideIsSent)
 			ret[k] = nil
 		else
 			-- Don't send "default", we recreate it when receiving
-			if skipDefaultTypeCode and v.typeCode == "default" then
-				-- Don't add typecode
-			else
+			if v.typeCode ~= "default" then
 				ret[k].typeCode = v.typeCode
 			end
 			ret[k].string = v.string

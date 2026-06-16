@@ -495,70 +495,43 @@ local function insertRandomRollsSession(temp, k, rolls)
 end
 
 function RCVotingFrame:DoRandomRolls(session)
-	if addon.Utils:GroupHasVersion("3.13.0") then
-		---@type TempTable<string>
-		local result = TempTable:Acquire()
-		local rolls = self:GenerateNoRepeatRollTable(addon:GetNumGroupMembers())
-		for k, v in ipairs(lootTable) do
-			if addon:ItemIsItem(lootTable[session].link, v.link) then
-				if #result == 0 then
-					insertRandomRollsSession(result, k, rolls)
-				else -- Handle duplicates
-					tinsert(result, k.."dupl"..result[1].."|")
-				end
-			end
-		end
-		addon:Send("group", "srolls", table.concat(result, ""))
-		TempTable:Release(result)
-		return
-	end
-
+	---@type TempTable<string>
+	local result = TempTable:Acquire()
 	local rolls = self:GenerateNoRepeatRollTable(addon:GetNumGroupMembers())
 	for k, v in ipairs(lootTable) do
 		if addon:ItemIsItem(lootTable[session].link, v.link) then
-			addon:Send("group", "rrolls", k, rolls)
+			if #result == 0 then
+				insertRandomRollsSession(result, k, rolls)
+			else -- Handle duplicates
+				tinsert(result, k.."dupl"..result[1].."|")
+			end
 		end
 	end
+	addon:Send("group", "srolls", table.concat(result, ""))
+	TempTable:Release(result)
 end
 
 function RCVotingFrame:DoAllRandomRolls()
 	local sessionsDone = {}
-	-- From v3.13 we send a single message with all rolls
-	if addon.Utils:GroupHasVersion("3.13.0") then
-		local temp = TempTable:Acquire()
-		for ses, t in ipairs(lootTable) do
-			if not sessionsDone[ses] and not t.hasRolls then -- Don't use auto rolls on session that requesting rolls from raid members.
-				local rolls = self:GenerateNoRepeatRollTable(addon:GetNumGroupMembers())
-				for k, v in ipairs(lootTable) do
-					if addon:ItemIsItem(t.link, v.link) then
-						sessionsDone[k] = true
-						if ses == k then
-							insertRandomRollsSession(temp, k, rolls)
-						else
-							tinsert(temp, k .. "dupl" .. ses .. "|")
-						end
-					end
-				end
-			end
-		end
-		local result = table.concat(temp, "")
-		TempTable:Release(temp)
-		addon:Send("group", "srolls", result)
-		return
-	end
-
-	-- Old way of sending 1 message per session.
+	local temp = TempTable:Acquire()
 	for ses, t in ipairs(lootTable) do
 		if not sessionsDone[ses] and not t.hasRolls then -- Don't use auto rolls on session that requesting rolls from raid members.
 			local rolls = self:GenerateNoRepeatRollTable(addon:GetNumGroupMembers())
 			for k, v in ipairs(lootTable) do
 				if addon:ItemIsItem(t.link, v.link) then
 					sessionsDone[k] = true
-					addon:Send("group", "rrolls", k, rolls)
+					if ses == k then
+						insertRandomRollsSession(temp, k, rolls)
+					else
+						tinsert(temp, k .. "dupl" .. ses .. "|")
+					end
 				end
 			end
 		end
 	end
+	local result = table.concat(temp, "")
+	TempTable:Release(temp)
+	addon:Send("group", "srolls", result)
 end
 
 -----------------------------------------------------------------
