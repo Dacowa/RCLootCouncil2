@@ -2988,15 +2988,22 @@ local function CheckCachedLootTable(lootTable)
 	return cached
 end
 
-function RCLootCouncil:OnLootTableReceived(lt)
-	-- Send "DISABLED" response when not enabled
+local AddonDisabledCheck = function(self, lt)
 	if not self.enabled then
 		for i = 1, #lt do
 			-- target, session, response, isTier, isRelic, note, roll, link, ilvl, equipLoc, relicType, sendAvgIlvl, sendSpecID
 			self:SendResponse("group", i, "DISABLED")
 		end
-		return self.Log("Sent 'DISABLED' response to", self.masterLooter)
+		self.Log("Sent 'DISABLED' response to", self.masterLooter)
+		return true
 	end
+end
+
+function RCLootCouncil:OnLootTableReceived(lt)
+	-- Send "DISABLED" response when not enabled
+	if AddonDisabledCheck(self, lt) then return	end
+
+	self.parsingLootTable = true
 
 	-- Cache items
 	if not CheckCachedLootTable(lt) then
@@ -3031,6 +3038,7 @@ function RCLootCouncil:OnLootTableReceived(lt)
 			-- target, session, response, isTier, isRelic, note, roll, link, ilvl, equipLoc, relicType, sendAvgIlvl, sendSpecID
 			self:SendResponse("group", ses, "NOTINRAID", nil, nil, nil, nil, v.link, v.ilvl, v.equipLoc, v.relic, true, true)
 		end
+		self.parsingLootTable = false
 		return
 	end
 
@@ -3045,9 +3053,12 @@ function RCLootCouncil:OnLootTableReceived(lt)
 	if self.inCombat then
 		self.UI:DelayedMinimize()
 	end
+	self.parsingLootTable = false
 end
 
 function RCLootCouncil:OnLootTableAdditionsReceived(lt)
+	if AddonDisabledCheck(self, lt) then return end
+	self.parsingLootTable = true
 	-- Ensure items are cached
 	if not CheckCachedLootTable(lt) then return self:ScheduleTimer("OnLootTableAdditionsReceived", 0, lt) end
 	-- Setup the additions
@@ -3065,6 +3076,7 @@ function RCLootCouncil:OnLootTableAdditionsReceived(lt)
 	if self.inCombat then
 		self.UI:DelayedMinimize()
 	end
+	self.parsingLootTable = false
 end
 
 function RCLootCouncil:OnMLDBReceived(input)
@@ -3112,6 +3124,7 @@ function RCLootCouncil:DoReroll(lt)
 end
 
 function RCLootCouncil:OnReRollReceived(sender, lt)
+	if AddonDisabledCheck(self, lt) then return end
 	self:Print(format(L["'player' has asked you to reroll"], self:GetClassIconAndColoredName(sender)))
 	self:DoReroll(lt)
 end
@@ -3119,6 +3132,7 @@ end
 ---@param candidates string[] List of transmittable player GUIDs of candidates that should reroll.
 ---@param lt LootTable
 function RCLootCouncil:OnNewReRollReceived(sender, candidates, lt)
+	if AddonDisabledCheck(self, lt) then return end
 	if not tContains(candidates, self.player:GetForTransmit()) then
 		self.Log:D("We are not in the reRoll candidate list")
 		return
@@ -3130,12 +3144,12 @@ end
 function RCLootCouncil:OnLootAckReceived()
 	-- If we receive a lootAck, but we don't have lootTable, then something's wrong!
 	-- REVIEW Is this still needed?
-	if not lootTable or #lootTable == 0 then
+	if not self.parsingLootTable and (not lootTable or #lootTable == 0) then
 		self.Log:d("!!!! We got an lootAck without having lootTable!!!!")
 		if not self.masterLooter then -- Extra sanity check
 			return self.Log:d("We don't have a ML?!")
 		end
-		if not self.recentReconnectRequest then -- we don't want to do it too often!
+		if not (self.recentReconnectRequest or self.isMasterLooter) then -- we don't want to do it too often!
 			self:Send(self.masterLooter, "reconnect")
 			self.recentReconnectRequest = true
 			self:ScheduleTimer("ResetReconnectRequest", 5) -- 5 sec break between each try
