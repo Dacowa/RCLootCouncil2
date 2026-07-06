@@ -559,10 +559,11 @@ function RCVotingFrame:OnChangeToWaitReceived(data)
 end
 
 function RCVotingFrame:OnLootAckReceived (name, specID, ilvl, sessionData)
-	if not lootTable[#sessionData] or not lootTable[#sessionData].candidates[name] then
+	local sesLen = next(sessionData.gear1)
+	if sesLen and not (lootTable[sesLen] and lootTable[sesLen].candidates[name]) then
 		-- LootAck received before lootTable
 		tinsert(self.delayedLootAcks , { name, specID, ilvl, sessionData })
-		addon.Log:W("Received LootAck before lootTable, delaying processing. Name:", name)
+		addon.Log:W("Received LootAck before lootTable, delaying processing. Name:", name, sesLen)
 		return
 	end
 	for k,d in pairs(sessionData) do
