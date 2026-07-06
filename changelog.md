@@ -1,3 +1,7 @@
+## Bugfixes
+
+- *Improved data syncing error recovery.*
+
 # 3.22.0
 
 ## Changes

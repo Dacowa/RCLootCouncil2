@@ -146,6 +146,7 @@ function RCLootCouncil:OnInitialize()
 	---@type InstanceDataSnapshot
 	self.instanceDataSnapshot = nil -- Instance data from last encounter
 	self.restrictionsEnabled = false -- Restrictions preventing chat/addon messages
+	self.lootTableMissingTimer = nil
 
 	---@type table<string,boolean>
 	self.candidatesInGroup = {}
@@ -727,11 +728,6 @@ function RCLootCouncil:SendAnnouncement(msg, channel, whisperTarget)
 	else
 		self.SendChatMessage(msg, self.Utils:GetAnnounceChannel(channel))
 	end
-end
-
-function RCLootCouncil:ResetReconnectRequest()
-	self.recentReconnectRequest = false
-	self.Log:d("ResetReconnectRequest")
 end
 
 function RCLootCouncil:ChatCmdAdd(args)
@@ -2344,6 +2340,12 @@ function RCLootCouncil:noop()
 	-- Intentionally left empty
 end
 
+function RCLootCouncil:CancelLootTableMissingTimer()
+	if self.lootTableMissingTimer then
+		self:CancelTimer(self.lootTableMissingTimer)
+		self.lootTableMissingTimer = nil
+	end
+end
 ---------------------------------------------------------------------------
 -- Custom module support funcs.
 -- @section Modules.
@@ -2969,6 +2971,7 @@ function RCLootCouncil:OnTradeableStatusReceived(sender, reason, link)
 end
 
 function RCLootCouncil:OnSessionEndReceived(sender)
+	self:CancelLootTableMissingTimer()
 	if not self.enabled then return end
 	if self:UnitIsUnit(sender, self.masterLooter) then
 		self:Print(format(L["'player' has ended the session"], self:GetClassIconAndColoredName(self.masterLooter)))
@@ -3000,6 +3003,8 @@ local AddonDisabledCheck = function(self, lt)
 end
 
 function RCLootCouncil:OnLootTableReceived(lt)
+	self:CancelLootTableMissingTimer()
+	self.recentReconnectRequest = false
 	-- Send "DISABLED" response when not enabled
 	if AddonDisabledCheck(self, lt) then return	end
 
@@ -3057,6 +3062,8 @@ function RCLootCouncil:OnLootTableReceived(lt)
 end
 
 function RCLootCouncil:OnLootTableAdditionsReceived(lt)
+	self:CancelLootTableMissingTimer()
+	self.recentReconnectRequest = false
 	if AddonDisabledCheck(self, lt) then return end
 	self.parsingLootTable = true
 	-- Ensure items are cached
@@ -3143,18 +3150,20 @@ end
 
 function RCLootCouncil:OnLootAckReceived()
 	-- If we receive a lootAck, but we don't have lootTable, then something's wrong!
-	-- REVIEW Is this still needed?
 	if not self.parsingLootTable and (not lootTable or #lootTable == 0) then
 		self.Log:d("!!!! We got an lootAck without having lootTable!!!!")
 		if not self.masterLooter then -- Extra sanity check
 			return self.Log:d("We don't have a ML?!")
 		end
-		if not (self.recentReconnectRequest or self.isMasterLooter) then -- we don't want to do it too often!
+		if self.lootTableMissingTimer or self.recentReconnectRequest then return end -- Timer already started
+		if self.isMasterLooter then return self.Log:E "ML missing lootTable?!" end
+
+		self.Log:D("Starting reconnect timer")
+		self.lootTableMissingTimer = self:ScheduleTimer(function()
 			self:Send(self.masterLooter, "reconnect")
 			self.recentReconnectRequest = true
-			self:ScheduleTimer("ResetReconnectRequest", 5) -- 5 sec break between each try
 			self.Log:d("Sent Reconnect Request")
-		end
+		end, 10)
 	end
 end
 
@@ -3283,3 +3292,6 @@ do -- fix player chache
 	end,
 	})
 end
+
+---@deprecated 6/7/2026
+function RCLootCouncil:ResetReconnectRequest() end
