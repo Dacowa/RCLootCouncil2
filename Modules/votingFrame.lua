@@ -1529,6 +1529,7 @@ function RCVotingFrame:UpdateSessionButton(i, texture, link, awarded)
 end
 
 function RCVotingFrame:AddNonTradeable(owner, reason, link)
+	if not link or link == "" then return end
 	self.numNonTradeables = self.numNonTradeables + 1
 	local texture = select(5, C_Item.GetItemInfoInstant(link))
 	local b = addon.UI:New("IconBordered", self.frame.content, texture)
