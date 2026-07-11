@@ -64,6 +64,18 @@ local needUpdate = false -- Does voting frame needs an update after MIN_UPDATE_I
 local PREFIX = addon.PREFIXES.MAIN
 local subscriptions = {}
 
+---@class ColumnSpec
+---@field id string?
+---@field colName string?
+---@field name string?
+---@field width number?
+---@field sortnext string|number?
+---@field sortnextRef string|number?
+---@field defaultsort number?
+---@field comparesort function?
+---@field align string?
+---@field DoCellUpdate function?
+
 function RCVotingFrame:OnInitialize()
 	-- Contains all the default data needed for the scroll table
 	-- The default values are in sorted order
@@ -85,7 +97,8 @@ function RCVotingFrame:OnInitialize()
 	}
 	-- The actual table being worked on, new entries should be added to this table "tinsert(RCVotingFrame.scrollCols, data)"
 	-- If you want to add or remove columns, you should do so on your OnInitialize. See RCVotingFrame:RemoveColumn() for removal.
-	self.scrollCols = {unpack(defaultScrollTableData)}
+	self.scrollCols = self:CloneColumnSpecs(defaultScrollTableData)
+	self:NormalizeColumnLayout()
 	self.nonTradeablesButtons = {}
 
 	menuFrame = _G.MSA_DropDownMenu_Create("RCLootCouncil_VotingFrame_RightclickMenu", UIParent)
@@ -249,6 +262,253 @@ function RCVotingFrame:Hide()
 	self.frame:Hide()
 end
 
+--- Copies the supplied column definitions into a mutable table.
+--- This preserves the existing layout while normalizing sortnext references
+--- into a form that can be safely updated after insertions and moves.
+--- @param columns table? The column definitions to clone.
+--- @return table<ColumnSpec> #A cloned list of column specs.
+function RCVotingFrame:CloneColumnSpecs(columns)
+	local copy = {}
+	for _, col in ipairs(columns or {}) do
+		local clone = {}
+		for k, v in pairs(col) do
+			clone[k] = v
+		end
+		if clone.sortnext ~= nil and type(clone.sortnext) ~= "number" then
+			clone.sortnextRef = clone.sortnext
+			clone.sortnext = nil
+		end
+		if not clone.id then
+			clone.id = clone.colName or clone.name or tostring(#copy + 1)
+		end
+		tinsert(copy, clone)
+	end
+	return copy
+end
+
+--- Resolves a column reference to a numeric index.
+--- Accepts a numeric index, a string id/colName, or a stringified index.
+--- @param ref number|string? The reference to resolve.
+--- @param columns ColumnSpec[]? The column list to search.
+--- @return number? #The resolved column index.
+function RCVotingFrame:ResolveColumnReference(ref, columns)
+	columns = columns or self.scrollCols or {}
+	if type(ref) == "number" then
+		return ref
+	end
+	if type(ref) == "string" then
+		local number = tonumber(ref)
+		if number then
+			return number
+		end
+		for i, col in ipairs(columns) do
+			if col.id == ref or col.colName == ref then
+				return i
+			end
+		end
+	end
+end
+
+--- Rebuilds the effective sortnext chain for the current columns.
+--- Existing sortnext values are resolved to stable numeric targets and circular
+--- references are cleared so sorting cannot recurse indefinitely.
+function RCVotingFrame:NormalizeColumnLayout()
+	local cols = self.scrollCols or {}
+	local function resolve(index, stack, path)
+		local col = cols[index]
+		if not col then return end
+		if stack[index] then
+			local startIndex
+			for i = 1, #path do
+				if path[i] == col then
+					startIndex = i
+					break
+				end
+			end
+			if startIndex then
+				local cycleCol = path[#path]
+				if cycleCol then
+					cycleCol.sortnext = nil
+					cycleCol.sortnextRef = nil
+					error(("Circular sortnext reference detected for column %s"):format(cycleCol.id or cycleCol.colName or tostring(index)), 2)
+				end
+			end
+			return
+		end
+		stack[index] = true
+		tinsert(path, col)
+		local raw = col.sortnextRef
+		if raw == nil then
+			raw = col.sortnext
+		end
+		local target = self:ResolveColumnReference(raw, cols)
+		col.sortnext = nil
+		if target and target >= 1 and target <= #cols and target ~= index then
+			if stack[target] then
+				col.sortnext = nil
+				col.sortnextRef = nil
+				error(("Circular sortnext reference detected for column %s"):format(col.id or col.colName or tostring(index)), 2)
+			else
+				col.sortnext = target
+				resolve(target, stack, path)
+			end
+		end
+		stack[index] = nil
+		tremove(path)
+	end
+
+	for i, col in ipairs(cols) do
+		local raw = col.sortnextRef
+		if raw == nil then
+			raw = col.sortnext
+		end
+		col.sortnextRef = raw
+		col.sortnext = nil
+	end
+	for i = 1, #cols do
+		resolve(i, {}, {})
+	end
+	return cols
+end
+
+--- Reapplies the current column layout to the scrolling table.
+--- This normalizes the layout and refreshes the table view after mutations.
+function RCVotingFrame:RefreshColumnLayout()
+	self:NormalizeColumnLayout()
+	if self.frame and self.frame.UpdateSt then
+		self.frame.UpdateSt()
+		if self.frame.st and self.frame.st.SortData then
+			self.frame.st:SortData()
+		end
+	end
+end
+
+--- Returns the column definition for a given id, name, or index.
+--- @param idOrIndex string|number The column id/name or numeric index.
+--- @return ColumnSpec? #The matching column definition.
+function RCVotingFrame:GetColumn(idOrIndex)
+	local index = self:GetColumnIndex(idOrIndex)
+	if index then
+		return self.scrollCols[index]
+	end
+end
+
+--- Returns the current index for a column id, name, or numeric position.
+--- @param idOrIndex string|number The column id/name or numeric index.
+--- @return number? #The matching index in the current column list.
+function RCVotingFrame:GetColumnIndex(idOrIndex)
+	if type(idOrIndex) == "number" then
+		return self.scrollCols and self.scrollCols[idOrIndex] and idOrIndex or nil
+	end
+	if type(idOrIndex) == "string" then
+		for i, col in ipairs(self.scrollCols or {}) do
+			if col.id == idOrIndex or col.colName == idOrIndex then
+				return i
+			end
+		end
+	end
+end
+
+--- Inserts a new column into the layout at the requested position.
+--- @param spec ColumnSpec The column definition to insert.
+--- @param target string|number? The target column or index for relative placement.
+--- @param position "before"|"after"? One of "before", "after", or nil for append behavior.
+--- @return ColumnSpec #The inserted column definition.
+function RCVotingFrame:AddColumn(spec, target, position)
+	assert(spec, "Column spec is required")
+	local clone = self:CloneColumnSpecs({spec})[1]
+	local insertAt
+	if type(target) == "number" and (position == nil or position == "index") then
+		insertAt = target
+	elseif position == "before" or position == "after" then
+		local targetIndex = self:GetColumnIndex(target)
+		assert(targetIndex, "Target column was not found")
+		insertAt = targetIndex + (position == "after" and 1 or 0)
+	elseif position == nil then
+		insertAt = #self.scrollCols + 1
+	else
+		insertAt = #self.scrollCols + 1
+	end
+	if insertAt < 1 then insertAt = 1 end
+	if insertAt > #self.scrollCols + 1 then insertAt = #self.scrollCols + 1 end
+	tinsert(self.scrollCols, insertAt, clone)
+	self:NormalizeColumnLayout()
+	self:RefreshColumnLayout()
+	return clone
+end
+
+--- Removes a column from the current layout.
+--- @param idOrIndex string|number The column id/name or numeric index to remove.
+--- @return ColumnSpec? #The removed column definition.
+function RCVotingFrame:RemoveColumn(idOrIndex)
+	local removedCol, removedIndex
+	if type(idOrIndex) == "number" then
+		removedIndex = idOrIndex
+		removedCol = tremove(self.scrollCols, idOrIndex)
+	else
+		removedIndex = self:GetColumnIndex(idOrIndex)
+		assert(removedIndex, "ID is not a valid column name")
+		removedCol = tremove(self.scrollCols, removedIndex)
+	end
+	if removedCol then
+		self:NormalizeColumnLayout()
+		self:RefreshColumnLayout()
+		return removedCol
+	end
+end
+
+--- Moves an existing column to a new position in the layout.
+--- @param idOrIndex string|number The column id/name or numeric index to move.
+--- @param target string|number? The destination column or index for relative placement.
+--- @param position "before"|"after"? One of "before", "after", or nil for append behavior.
+--- @return ColumnSpec? #The moved column definition.
+function RCVotingFrame:MoveColumn(idOrIndex, target, position)
+	local currentIndex = self:GetColumnIndex(idOrIndex)
+	assert(currentIndex, "Column was not found")
+	local column = tremove(self.scrollCols, currentIndex)
+	if not column then return end
+	local insertAt
+	if type(target) == "number" and (position == nil or position == "index") then
+		insertAt = target
+	elseif position == "before" or position == "after" then
+		local targetIndex = self:GetColumnIndex(target)
+		assert(targetIndex, "Target column was not found")
+		insertAt = targetIndex + (position == "after" and 1 or 0)
+	elseif position == nil then
+		insertAt = #self.scrollCols + 1
+	else
+		insertAt = #self.scrollCols + 1
+	end
+	if insertAt < 1 then insertAt = 1 end
+	if insertAt > #self.scrollCols + 1 then insertAt = #self.scrollCols + 1 end
+	tinsert(self.scrollCols, insertAt, column)
+	self:NormalizeColumnLayout()
+	self:RefreshColumnLayout()
+	return column
+end
+
+--- Updates an existing column in place.
+--- @param idOrIndex string|number The column id/name or numeric index to update.
+--- @param spec ColumnSpec The updated column definition.
+--- @return ColumnSpec? #The updated column definition.
+function RCVotingFrame:UpdateColumn(idOrIndex, spec)
+	assert(spec, "Column spec is required")
+	local index = self:GetColumnIndex(idOrIndex)
+	assert(index, "Column was not found")
+	local column = self.scrollCols[index]
+	if not column then return end
+	for k, v in pairs(spec) do
+		column[k] = v
+	end
+	if column.sortnext ~= nil and type(column.sortnext) ~= "number" then
+		column.sortnextRef = column.sortnext
+		column.sortnext = nil
+	end
+	self:NormalizeColumnLayout()
+	self:RefreshColumnLayout()
+	return column
+end
+
 function RCVotingFrame:Show()
 	if self.frame and lootTable[session] then
 		if self:HasUnawardedItems() then active = true end
@@ -307,46 +567,6 @@ function RCVotingFrame:EndSession(hide)
 	wipe(self.delayedLootAcks)
 end
 
---- Removes a specific entry from the voting frame's columns
--- Takes either index or colName as the identifier, and returns the removed rows
--- if successfull, or nil if not. Should be called before any session begins.
-function RCVotingFrame:RemoveColumn(id)
-	addon.Log:D("Removing Column", id)
-	local removedCol, removedIndex
-	if type(id) == "number" then
-		removedIndex = id
-		removedCol = tremove(self.scrollCols, id)
-	else
-		removedIndex = self:GetColumnIndexFromName(id)
-		assert(removedIndex, "ID is not a valid column name")
-		removedCol = tremove(self.scrollCols, removedIndex)
-	end
-	-- Fix sortnext as they could be broken with the removal
-	if removedCol then
-		for _,col in ipairs(self.scrollCols) do
-			if col.sortnext and col.sortnext > removedIndex then
-				col.sortnext = col.sortnext - 1
-			end
-		end
-		-- If the frame has already been created, we need to update it
-		if self:IsEnabled() and self.frame then
-			if self.frame:IsShown() then
-				addon.Log:E("Tried to remove column while voting frame is shown")
-			else
-				self.frame.UpdateSt()
-			end
-		end
-		return removedCol
-	end
-end
-
-function RCVotingFrame:GetColumnIndexFromName (name)
-	for i,v in ipairs(self.scrollCols) do
-      if v.colName == name then
-         return i
-      end
-   end
-end
 
 -- Getter/Setter for candidate data
 -- Handles errors
