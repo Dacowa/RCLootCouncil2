@@ -62,6 +62,7 @@ function LootHistory:OnInitialize()
 		{name = L["Item"],	width = 250, comparesort = self.ItemSort, defaultsort = 1, sortnext = 2},			-- Item string
 		{name = L["Reason"],	width = 220, comparesort = self.ResponseSort,  defaultsort = 1, sortnext = 2},	-- Response aka the text supplied to lootDB...response
 		{ name = L["Notes"],  width = 40, },
+		{name = "",				width = ROW_HEIGHT},																					-- Session responses button
 		{name = "",				width = ROW_HEIGHT},																					-- Delete button
 	}
 	filterMenu = _G.MSA_DropDownMenu_Create("RCLootCouncil_LootHistory_FilterMenu", UIParent)
@@ -107,6 +108,7 @@ function LootHistory:Hide()
 	self.frame:Hide()
 	self.moreInfo:Hide()
 	moreInfo = false
+	if self.sessionResponsesFrame then self.sessionResponsesFrame:Hide() end
 end
 
 function LootHistory:SubscribeToPermanentComms ()
@@ -226,6 +228,7 @@ function LootHistory:BuildData()
 							{value = i.lootWon},
 							{DoCellUpdate = self.SetCellResponse, args = {color = i.color, response = i.response, responseID = i.responseID or 0, isAwardReason = i.isAwardReason}},
 							{ DoCellUpdate = self.SetCellNote },
+							{DoCellUpdate = self.SetCellSessionResponses},
 							{DoCellUpdate = self.SetCellDelete},
 						}
 					}
@@ -484,6 +487,114 @@ function LootHistory.SetCellNote(rowFrame, frame, data, cols, row, realrow, colu
 		data[realrow].cols[column].value = 0
 	end
 	frame.noteBtn = f
+end
+
+function LootHistory.SetCellSessionResponses(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
+	if not data then return end
+	local row = data[realrow]
+	local entry = lootDB[row.name] and lootDB[row.name][row.num]
+	local f = frame.sessionBtn or CreateFrame("Button", nil, frame)
+	f:SetSize(ROW_HEIGHT, ROW_HEIGHT)
+	f:SetPoint("CENTER", frame, "CENTER")
+	if entry and entry.sessionResponses then
+		f:SetNormalTexture("Interface/Buttons/UI-GroupLoot-Dice-Up")
+		f:SetHighlightTexture("Interface/Buttons/UI-GroupLoot-Dice-Highlight")
+		f:SetScript("OnEnter", function() addon:CreateTooltip(L["Responses"], L["history_sessionResponses_tip"]) end)
+		f:SetScript("OnLeave", function() addon:HideTooltip() end)
+		f:SetScript("OnClick", function() LootHistory:ShowSessionResponses(row.name, entry) end)
+		f:Show()
+	else
+		f:Hide()
+	end
+	frame.sessionBtn = f
+end
+
+function LootHistory.SetCellWinnerIndicator(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
+	if not frame.winnerTex then
+		frame.winnerTex = frame:CreateTexture(nil, "OVERLAY")
+		frame.winnerTex:SetPoint("CENTER", frame, "CENTER")
+		frame.winnerTex:SetSize(ROW_HEIGHT - 6, ROW_HEIGHT - 6)
+		frame.winnerTex:SetTexture("Interface/RaidFrame/ReadyCheck-Ready")
+	end
+	frame.winnerTex:SetShown(data[realrow].cols[column].args.isWinner or false)
+end
+
+-- Same as SetCellNote, except the note is delivered in args instead of being fetched from the lootDB.
+function LootHistory.SetCellSessionNote(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
+	local note = data[realrow].cols[column].args.note
+	local f = frame.noteBtn or CreateFrame("Button", nil, frame)
+	f:SetSize(ROW_HEIGHT, ROW_HEIGHT)
+	f:SetPoint("CENTER", frame, "CENTER")
+	if note then
+		f:SetNormalTexture("Interface/BUTTONS/UI-GuildButton-PublicNote-Up.png")
+		f:SetScript("OnEnter", function() addon:CreateTooltip(_G.LABEL_NOTE, note) end)
+		f:SetScript("OnLeave", function() addon:HideTooltip() end)
+	else
+		f:SetScript("OnEnter", nil)
+		f:SetNormalTexture("Interface/BUTTONS/UI-GuildButton-PublicNote-Disabled.png")
+	end
+	frame.noteBtn = f
+end
+
+function LootHistory:GetSessionResponsesFrame()
+	if self.sessionResponsesFrame then return self.sessionResponsesFrame end
+	local f = addon.UI:NewNamed("RCFrame", self.frame, "RCLootHistorySessionResponsesFrame", L["Responses"], nil, 260)
+	f:SetFrameStrata("DIALOG")
+	addon.UI:RegisterForEscapeClose(f, function() f:Hide() end)
+	local st = LibStub("ScrollingTable"):CreateST({
+		{name = "",							width = ROW_HEIGHT,},	-- Class icon
+		{name = "",							width = ROW_HEIGHT,},	-- Winner indicator
+		{name = _G.NAME,					width = 110, sort = 1,},
+		{name = L["Reason"],				width = 140,},
+		{name = L["Notes"],				width = 40,},
+		{name = _G.ITEM_LEVEL_ABBR,	width = 45,},
+		{name = _G.ROLL,					width = 40,},
+		{name = L["Votes"],				width = 45,},
+	}, 10, ROW_HEIGHT, nil, f.content)
+	st.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -30)
+	f:SetWidth(st.frame:GetWidth() + 20)
+	f.st = st
+	self.sessionResponsesFrame = f
+	return f
+end
+
+--- Displays everyone's response to a specific history entry, as collected on award.
+---@param winner string Name of the history entry's owner.
+---@param entry table The history entry containing sessionResponses.
+function LootHistory:ShowSessionResponses(winner, entry)
+	local f = self:GetSessionResponsesFrame()
+	local rows = {}
+	for name, v in pairs(entry.sessionResponses) do
+		local isWinner = addon:UnitIsUnit(name, winner)
+		local class, response, color, responseID, note, votes
+		if isWinner then
+			-- The winner's data lives on the history entry itself
+			class, response, color, responseID, note, votes =
+				entry.class, entry.response, entry.color, entry.responseID, entry.note, entry.votes
+		else
+			local r = addon:GetResponse(entry.typeCode or "default", v.response)
+			class, response, color, responseID, note, votes = v.class, r.text, r.color, v.response, v.note, v.votes
+		end
+		tinsert(rows, {
+			cols = {
+				{DoCellUpdate = addon.SetCellClassIcon, args = {class}, value = class or ""},
+				{DoCellUpdate = self.SetCellWinnerIndicator, args = {isWinner = isWinner}, value = isWinner and 1 or 0},
+				{value = addon.Ambiguate(name), color = addon:GetClassColor(class)},
+				{DoCellUpdate = self.SetCellResponse, args = {color = color, response = response, responseID = responseID or 0, isAwardReason = isWinner and entry.isAwardReason}},
+				{DoCellUpdate = self.SetCellSessionNote, args = {note = note}, value = note and 1 or 0},
+				{value = v.ilvl or ""},
+				{value = v.roll or ""},
+				{value = votes or 0},
+			},
+		})
+	end
+	-- Winner on top, then by votes
+	table.sort(rows, function(a, b)
+		if a.cols[2].value ~= b.cols[2].value then return a.cols[2].value > b.cols[2].value end
+		return (a.cols[8].value or 0) > (b.cols[8].value or 0)
+	end)
+	f.st:SetData(rows)
+	f:Show()
 end
 
 function LootHistory.SetCellDelete(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
