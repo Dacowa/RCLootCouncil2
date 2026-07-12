@@ -418,7 +418,7 @@ function RCVotingFrame:AddColumn(spec, target, position)
 	assert(spec, "Column spec is required")
 	local clone = self:CloneColumnSpecs({spec})[1]
 	local insertAt
-	if type(target) == "number" and (position == nil or position == "index") then
+	if type(target) == "number" and position == nil then
 		insertAt = target
 	elseif position == "before" or position == "after" then
 		local targetIndex = self:GetColumnIndex(target)
