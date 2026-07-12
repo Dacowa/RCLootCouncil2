@@ -538,8 +538,7 @@ end
 
 function LootHistory:GetSessionResponsesFrame()
 	if self.sessionResponsesFrame then return self.sessionResponsesFrame end
-	local f = addon.UI:NewNamed("RCFrame", self.frame, "RCLootHistorySessionResponsesFrame", L["Responses"], nil, 260)
-	f:SetFrameStrata("DIALOG")
+	local f = addon.UI:NewNamed("RCFrame", UIParent, "RCLootHistorySessionResponsesFrame", L["Responses"], nil, 260)
 	addon.UI:RegisterForEscapeClose(f, function() f:Hide() end)
 	local st = LibStub("ScrollingTable"):CreateST({
 		{name = "",							width = ROW_HEIGHT,},	-- Class icon
@@ -553,6 +552,10 @@ function LootHistory:GetSessionResponsesFrame()
 	}, 10, ROW_HEIGHT, nil, f.content)
 	st.frame:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -30)
 	f:SetWidth(st.frame:GetWidth() + 20)
+	f:SetHeight(st.frame:GetHeight() + 75)
+	local close = addon:CreateButton(_G.CLOSE, f.content)
+	close:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 10)
+	close:SetScript("OnClick", function() f:Hide() end)
 	f.st = st
 	self.sessionResponsesFrame = f
 	return f
@@ -595,6 +598,7 @@ function LootHistory:ShowSessionResponses(winner, entry)
 	end)
 	f.st:SetData(rows)
 	f:Show()
+	f:Raise()
 end
 
 function LootHistory.SetCellDelete(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
