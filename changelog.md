@@ -1,6 +1,7 @@
 ## Bugfixes
 
 - *Improved data syncing error recovery.*
+- *History sent to guild channel wouldn't be received properly.*
 
 # 3.22.0
 
