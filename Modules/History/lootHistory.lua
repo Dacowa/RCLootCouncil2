@@ -134,6 +134,9 @@ function LootHistory:OnHistoryReceived (name, history)
 	if not db.saveBonusRolls and history.responseID == "BONUS_ROLL" then
 		return addon.Log:D("Not storing bonus rolls", history.lootWon)
 	end
+	if not db.saveSessionResponses then -- Both the ML (collection) and each receiver (storage) must opt in
+		history.sessionResponses = nil
+	end
 	-- v3.15.4 check for old date formats 
 	local d, m, y = strsplit("/", history.date, 3)
 	if #tostring(d) < 4 then
