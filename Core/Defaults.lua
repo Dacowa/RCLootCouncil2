@@ -82,7 +82,7 @@ addon.defaults = {
 		sendHistoryToGuildChannel = false,
 		savePersonalLoot = true,
 		saveBonusRolls = true,
-		saveSessionResponses = false,
+		saveSessionResponses = true,
 
 		-- ML - General - Usage
 		usage = { -- State of enabledness
