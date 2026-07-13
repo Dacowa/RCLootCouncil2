@@ -1250,6 +1250,7 @@ local historyCounter = 0 -- Used to generate history table entry unique id
 ---@param winner string The winner of the session.
 ---@return table<string, table>? #Candidate name -> response data, or nil if there's none.
 function RCLootCouncilML:GetSessionResponses(session, winner)
+	if not db.saveSessionResponses then return end -- Opt-in due to the storage increase
 	if not session then return end
 	local lootTable = addon:GetActiveModule("votingframe"):GetLootTable()
 	local sessionData = lootTable and lootTable[session]
