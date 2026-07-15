@@ -393,6 +393,12 @@ function RCVotingFrame:GetColumn(idOrIndex)
 	end
 end
 
+--- @deprecated 
+--- Use [GetColumnIndex](lua://RCVotingFrame.GetColumnIndex) instead
+function RCVotingFrame:GetColumnIndexFromName(name)
+	return self:GetColumnIndex(name)
+end
+
 --- Returns the current index for a column id, name, or numeric position.
 --- @param idOrIndex string|number The column id/name or numeric index.
 --- @return number? #The matching index in the current column list.
