@@ -1740,6 +1740,7 @@ end
 
 function RCLootCouncilML:OnReconnectReceived (sender)
 	-- Someone asks for mldb and council
+	self.Log("Responding to reconnect from", sender)
 	local requestPlayer = Player:Get(sender)
 	MLDB:Send(requestPlayer)
 	local council = Council:GetForTransmit()
@@ -1748,9 +1749,13 @@ function RCLootCouncilML:OnReconnectReceived (sender)
 	if addon.handleLoot then
 		self:Send(requestPlayer, "StartHandleLoot")
 	end
-
+	self.Log:D("State:", addon.handleLoot, self.running)
 	if self.running then -- Resend lootTable
-		self:ScheduleTimer("Send", 4, requestPlayer, "lootTable", self:GetLootTableForTransmit(true))
+		local lt = self:GetLootTableForTransmit(true)
+		local count = 0
+		for _ in pairs(lt) do count = count + 1 end
+		self.Log:d("Sending lootTable size:", count)
+		self:ScheduleTimer("Send", 4, requestPlayer, "lootTable", lt)
 		-- REVIEW v2.2.6 For backwards compability we're just sending avotingFrame's lootTable
 		-- This is quite redundant and should be removed in the future
 		-- if db.observe or Council:Contains(requestPlayer) then -- Only send all data to councilmen
@@ -1766,7 +1771,6 @@ function RCLootCouncilML:OnReconnectReceived (sender)
 		-- 	self:ScheduleTimer("Send", 5, requestPlayer, "reconnectData", table)
 		-- end
 	end
-	self.Log("Responded to reconnect from", sender)
 end
 
 function RCLootCouncilML:OnMLDBRequestReceived (sender)

@@ -138,6 +138,7 @@ function RCLootCouncil:OnInitialize()
 	self.currentInstanceName = ""
 	self.bossName = nil -- Updates after each encounter
 	self.lootOpen = false -- is the ML lootWindow open or closed?
+	---@type table<number, LootSlotInfo>
 	self.lootSlotInfo = {} -- Items' data currently in the loot slot. Need this because inside LOOT_SLOT_CLEARED handler, GetLootSlotLink() returns invalid link.
 	self.nonTradeables = {} -- List of non tradeable items received since the last ENCOUNTER_END
 	self.lastEncounterID = nil
@@ -683,6 +684,13 @@ function RCLootCouncil:UpdateAndSendRecentTradableItem(info, count)
 	if index then
 		-- Remove from list in case we get future similar items.
 		tremove(itemsBeingGroupLooted, index)
+		return
+	end
+	if not info.link or info.link == "" then
+		if self.Utils:IsSecretValue(info.link) then
+			return self.Log:W("UpdateAndSendRecentTradableItem: info.link is secret value", info.link, info.guid, info.name)
+		end
+		self.Require "Services.ErrorHandler":ThrowSilentError("UpdateAndSendRecentTradableItem: info.link is nil")
 		return
 	end
 	local Item = self.ItemStorage:New(info.link, "temp")
