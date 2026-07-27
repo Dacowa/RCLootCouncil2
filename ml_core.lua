@@ -1248,7 +1248,7 @@ local historyCounter = 0 -- Used to generate history table entry unique id
 --- The winner's response, note and votes are already on the history entry, so only their ilvl and roll is stored.
 ---@param session integer The session to collect responses from.
 ---@param winner string The winner of the session.
----@return table<string, table>? #Candidate name -> response data, or nil if there's none.
+---@return table<string, string>? #Candidate name -> response data, or nil if there's none.
 function RCLootCouncilML:GetSessionResponses(session, winner)
 	if not db.saveSessionResponses then return end -- Opt-in due to the storage increase
 	if not session then return end
@@ -1256,20 +1256,25 @@ function RCLootCouncilML:GetSessionResponses(session, winner)
 	local sessionData = lootTable and lootTable[session]
 	if not (sessionData and sessionData.candidates) then return end
 	local sessionResponses = {}
+	local temp = {}
 	for name, data in pairs(sessionData.candidates) do
+		wipe(temp)
 		-- On re-awards the winner's response has been replaced with "AWARDED"; their real response is kept seperately.
 		local response = data.response == "AWARDED" and data.real_response or data.response
 		if addon:UnitIsUnit(name, winner) then
-			sessionResponses[name] = { ilvl = data.ilvl, roll = data.roll, }
+			temp[1] = data.ilvl or ""
+			temp[2] = data.roll
 		elseif type(response) == "number" then -- An actual response, i.e. not a pass or status text
-			sessionResponses[name] = {
-				response = response,
-				class    = data.class,
-				ilvl     = data.ilvl,
-				roll     = data.roll,
-				votes    = data.votes ~= 0 and data.votes or nil,
-				note     = data.note,
-			}
+			temp[1] = data.ilvl or ""
+			temp[2] = addon.classTagNameToID[data.class] or ""
+			temp[3] = response or ""
+			temp[4] = data.roll or ""
+			temp[5] = data.votes ~= 0 and data.votes or ""
+			temp[6] = data.note
+		end
+		if #temp > 0 and temp[1] ~= "" then
+			local player = Player:Get(name)
+			sessionResponses[player:GetForTransmit()] = table.concat(temp, "@")
 		end
 	end
 	return next(sessionResponses) and sessionResponses or nil
@@ -1321,7 +1326,7 @@ function RCLootCouncilML:TrackAndLogLoot(winner, link, responseID, boss, reason,
 	history_table["id"]		= GetServerTime().."-"..historyCounter										-- New in v2.7+. A unique id for the history entry.
 	history_table["owner"]			= owner or self.lootTable[session] and self.lootTable[session].owner or winner		-- New in v2.9+.
 	history_table["typeCode"]		= self.lootTable[session] and self.lootTable[session].typeCode					-- New in v2.15+.
-	history_table["sessionResponses"] = self:GetSessionResponses(session, winner)								-- New in v3.22+.
+	history_table["SR"] 			= self:GetSessionResponses(session, winner)												-- New in v3.23+.
 
 	historyCounter = historyCounter + 1
 

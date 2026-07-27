@@ -17,6 +17,8 @@ local L = LibStub("AceLocale-3.0"):GetLocale("RCLootCouncil")
 local AG = LibStub("AceGUI-3.0")
 local Comms = addon.Require "Services.Comms"
 local ItemUtils = addon.Require "Utils.Item"
+local Player = addon.Require "Data.Player"
+local TempTable = addon.Require "Utils.TempTable"
 
 local COMMS_PREFIX = addon.PREFIXES.MAIN
 local lootDB, data, db
@@ -122,6 +124,34 @@ function LootHistory:SubscribeToPermanentComms ()
 	})
 end
 
+local function DecodeSessionResponses(his)
+	local orig = CopyTable(his.SR)
+	his.sessionResponses = {}
+	for guid, encoded in pairs(orig) do
+		local name = Player:Get(guid):GetName()
+		local splitted = TempTable:Acquire(string.split("@", encoded))
+		if #splitted <= 2 and splitted[1] ~= "" then
+			his.sessionResponses[name] = {
+				ilvl = splitted[1] and tonumber(splitted[1]) or nil,
+				roll = splitted[2] and tonumber(splitted[2]) or nil,
+			}
+		elseif #splitted > 2 then
+			local class = splitted[2] and addon.classIDToFileName[tonumber(splitted[2])] or nil
+			his.sessionResponses[name] = {
+				ilvl = splitted[1] and tonumber(splitted[1]) or nil,
+				class = class,
+				response = splitted[3] and tonumber(splitted[3]) or nil,
+				roll = splitted[4] and tonumber(splitted[4]) or nil,
+				votes = splitted[5] and tonumber(splitted[5]) or nil,
+				note = splitted[6]
+			}
+		else
+			addon.Log:E("Error decoding session responses", name, encoded)
+		end
+		TempTable:Release(splitted)
+	end
+end
+
 function LootHistory:OnHistoryReceived (name, history)
 	db = addon:Getdb()
 	if not db.enableHistory then return end
@@ -135,7 +165,9 @@ function LootHistory:OnHistoryReceived (name, history)
 		return addon.Log:D("Not storing bonus rolls", history.lootWon)
 	end
 	if not db.saveSessionResponses then -- Both the ML (collection) and each receiver (storage) must opt in
-		history.sessionResponses = nil
+		history.SR = nil
+	elseif history.SR then
+		DecodeSessionResponses(history)
 	end
 	-- v3.15.4 check for old date formats 
 	local d, m, y = strsplit("/", history.date, 3)
