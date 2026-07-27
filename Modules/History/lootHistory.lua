@@ -125,9 +125,8 @@ function LootHistory:SubscribeToPermanentComms ()
 end
 
 local function DecodeSessionResponses(his)
-	local orig = CopyTable(his.SR)
 	his.sessionResponses = {}
-	for guid, encoded in pairs(orig) do
+	for guid, encoded in pairs(his.SR) do
 		local name = Player:Get(guid):GetName()
 		local splitted = TempTable:Acquire(string.split("@", encoded))
 		if #splitted <= 2 and splitted[1] ~= "" then
@@ -164,11 +163,10 @@ function LootHistory:OnHistoryReceived (name, history)
 	if not db.saveBonusRolls and history.responseID == "BONUS_ROLL" then
 		return addon.Log:D("Not storing bonus rolls", history.lootWon)
 	end
-	if not db.saveSessionResponses then -- Both the ML (collection) and each receiver (storage) must opt in
-		history.SR = nil
-	elseif history.SR then
+	if db.saveSessionResponses and history.SR then -- Both the ML (collection) and each receiver (storage) must opt in
 		DecodeSessionResponses(history)
 	end
+	history.SR = nil
 	-- v3.15.4 check for old date formats 
 	local d, m, y = strsplit("/", history.date, 3)
 	if #tostring(d) < 4 then
