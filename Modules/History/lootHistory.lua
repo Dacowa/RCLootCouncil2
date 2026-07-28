@@ -136,13 +136,15 @@ local function DecodeSessionResponses(his)
 			}
 		elseif #splitted > 2 then
 			local class = splitted[2] and addon.classIDToFileName[tonumber(splitted[2])] or nil
+			-- The note is transmitted last and may itself contain the delimiter
+			local note = #splitted > 6 and table.concat(splitted, "@", 6) or splitted[6]
 			his.sessionResponses[name] = {
 				ilvl = splitted[1] and tonumber(splitted[1]) or nil,
 				class = class,
 				response = splitted[3] and tonumber(splitted[3]) or nil,
 				roll = splitted[4] and tonumber(splitted[4]) or nil,
 				votes = splitted[5] and tonumber(splitted[5]) or nil,
-				note = splitted[6]
+				note = note
 			}
 		else
 			addon.Log:E("Error decoding session responses", name, encoded)
