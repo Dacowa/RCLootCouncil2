@@ -1270,7 +1270,7 @@ function RCLootCouncilML:GetSessionResponses(session, winner)
 			temp[3] = response or ""
 			temp[4] = data.roll or ""
 			temp[5] = data.votes ~= 0 and data.votes or ""
-			temp[6] = data.note
+			temp[6] = data.note or nil -- Submitting an empty note stores it as `false`
 		end
 		if #temp > 0 and temp[1] ~= "" then
 			local player = Player:Get(name)
