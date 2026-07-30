@@ -6,6 +6,7 @@
   <Script file = "options.lua" />
   <Script file = "History/lootHistory.lua" />
   <Script file = "History/CSVImport.lua" />
+  <Script file = "History/SessionData.lua" />
   <Script file = "TradeUI.lua" />
   <Script file = "Sync.lua" />
 </Ui>
