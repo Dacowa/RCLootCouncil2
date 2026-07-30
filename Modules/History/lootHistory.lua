@@ -124,7 +124,9 @@ function LootHistory:SubscribeToPermanentComms ()
 	})
 end
 
-local function DecodeSessionResponses(his)
+--- Decodes raw SR history string into a useable table
+--- @param his table As received from "history" comm.
+function LootHistory:DecodeSessionResponses(his)
 	his.sessionResponses = {}
 	for guid, encoded in pairs(his.SR) do
 		local name = Player:Get(guid):GetName()
@@ -166,7 +168,7 @@ function LootHistory:OnHistoryReceived (name, history)
 		return addon.Log:D("Not storing bonus rolls", history.lootWon)
 	end
 	if db.saveSessionResponses and history.SR then -- Both the ML (collection) and each receiver (storage) must opt in
-		DecodeSessionResponses(history)
+		self:DecodeSessionResponses(history)
 	end
 	history.SR = nil
 	-- v3.15.4 check for old date formats 
