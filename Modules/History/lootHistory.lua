@@ -52,6 +52,7 @@ function LootHistory:OnInitialize()
 		bbcodeSmf = {func = self.ExportBBCodeSMF, 	name = "BBCode SMF",		tip = L["BBCode export, tailored for SMF."],},
 		eqxml = 	{func = self.ExportEQXML,			name = "EQdkp-Plus XML",	tip = L["EQdkp-Plus XML output, tailored for Enjin import."]},
 		player = 	{func = self.PlayerExport,		name = "Player Export",		tip = L["A format to copy/paste to another player."]},
+		playerNew = {func = self.PlayerExportNew,	name = "Player Export (new)",	tip = L["A format to copy/paste to another player."]},
 		discord = 	{func = self.ExportDiscord, 		name = "Discord", 			tip = L["Discord friendly output."]},
 		json = 		{func = self.ExportJSON,			name = "JSON",				tip = L["Standard JSON output."]},
 		--html = self.ExportHTML
@@ -821,6 +822,7 @@ function LootHistory:ImportPlayerExport (import)
 	for name, data in pairs(import) do
 		if lootDB[name] then -- We've registered the name, so check all the awards
 			for _, v in pairs(data) do
+				v.SR = nil -- Just in case anyone has this saved in their history
 				local found = false
 				for _, d in pairs(lootDB[name]) do -- REVIEW This is currently ~O(#lootDB[name]^2). Could probably be improved.
 					-- Check if the id matches. If it does, we already have the data and can skip to the next
@@ -1856,9 +1858,21 @@ do
 		-- local export = "html test"
 	end
 
-	--- Generates a serialized string containing the entire DB.
-	-- For now it needs to be copied and pasted in another player's import field.
+--- Old player export without the new sessionData field.
 	function LootHistory:PlayerExport()
+		local his = CopyTable(lootDB)
+		for _, v in pairs(his) do
+			for _, d in pairs(v) do
+				d.sessionData = nil
+			end
+		end
+		return self:EscapeItemLink(self:Serialize(his))
+	end
+
+	--- Generates a serialized string containing the entire DB.
+	--- For now it needs to be copied and pasted in another player's import field.
+	--- Note: v3.23: Will become the default in the future
+	function LootHistory:PlayerExportNew()
 		return self:EscapeItemLink(self:Serialize(lootDB))
 	end
 end
