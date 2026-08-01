@@ -1,7 +1,4 @@
--- TODO 
---[[ 	Better feedback on circular sorting
-		More tests
-]]
+--- API for manipulating the Voting Frame columns.
 
 --- @type RCLootCouncil
 local addon = select(2, ...)
@@ -58,12 +55,13 @@ end
 function RCVotingFrame:CheckColNameUniqueness(name)
 	for i, col in ipairs(self.scrollCols or {}) do
 		if col.colName == name then
-			error(format("Column %s already exists at index %d", name, i), 2)
+			error(format("Column '%s' already exists at index %d", name, i), 2)
 		end
 	end
 end
 
 --- Inserts a new column into the layout at the requested position.
+--- If this column causes circular sorting, it's still added with nil sortnext.
 --- @param spec ColumnSpec The column definition to insert.
 --- @param target string|number? The target column or index for relative placement.
 --- @param position "before"|"after"? One of "before", "after", or nil for append behavior.
@@ -118,6 +116,7 @@ function RCVotingFrame:MoveColumn(nameOrIndex, target, position)
 end
 
 --- Updates an existing column in place.
+--- Nothing's changed if an error occurs.
 --- @param nameOrIndex string|number The column id/name or numeric index to update.
 --- @param spec ColumnSpec The updated column definition.
 --- @return ColumnSpec? #The updated column definition.
@@ -131,6 +130,7 @@ function RCVotingFrame:UpdateColumn(nameOrIndex, spec)
 	if column.colName ~= spec.colName then
 		self:CheckColNameUniqueness(spec.colName)
 	end
+	local old = CopyTable(column)
 	for k, v in pairs(spec) do
 		column[k] = v
 	end
@@ -138,7 +138,11 @@ function RCVotingFrame:UpdateColumn(nameOrIndex, spec)
 		column.sortnextRef = column.sortnext
 		column.sortnext = nil
 	end
-	self:RefreshColumnLayout()
+	local success, err = pcall(self.RefreshColumnLayout, self)
+	if not success then
+		self.scrollCols[index] = old
+		error(err, 2)
+	end
 	return column
 end
 
@@ -236,8 +240,18 @@ end
 --- references are cleared so sorting cannot recurse indefinitely.
 --- @internal
 function RCVotingFrame:NormalizeColumnLayout()
+	local resolvedCols = {} -- List of columns that have already been checked
 	local cols = self.scrollCols or {}
+	local function PrintTrace(path, raw)
+		local trace = {}
+		for i = 1, #path do
+			trace[i] = path[i].colName or path[i].id or tostring(i)
+		end
+		trace[#trace + 1] = raw
+		addon:Print("<Error> Circular Sort Path:", table.concat(trace, " -> "))
+	end
 	local function resolve(index, stack, path)
+		if tContains(resolvedCols, index) then return end
 		local col = cols[index]
 		if not col then return end
 		if stack[index] then
@@ -254,10 +268,12 @@ function RCVotingFrame:NormalizeColumnLayout()
 					cycleCol.sortnext = nil
 					cycleCol.sortnextRef = nil
 					error(
-						("Circular sortnext reference detected for column %s"):format(cycleCol.id or cycleCol.colName or
-							tostring(index)), 2)
+						("Circular sortnext reference detected for column %s -> %s"):format(
+							cycleCol.id or cycleCol.colName or
+							tostring(index), stack[startIndex].colName))
 				end
 			end
+			tinsert(resolvedCols, index)
 			return
 		end
 		stack[index] = true
@@ -272,14 +288,16 @@ function RCVotingFrame:NormalizeColumnLayout()
 			if stack[target] then
 				col.sortnext = nil
 				col.sortnextRef = nil
-				DevTools_Dump(debuglocals())
-				error(("Circular sortnext reference detected for column %s"):format(col.colName or tostring(index)))
+				PrintTrace(path, raw)
+				error(("Circular sortnext reference detected for column %s -> %s"):format(col.colName or tostring(index),
+					raw))
 			else
 				col.sortnext = target
 				resolve(target, stack, path)
 			end
 		end
 		stack[index] = nil
+		tinsert(resolvedCols, index)
 		tremove(path)
 	end
 
