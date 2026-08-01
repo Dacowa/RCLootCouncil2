@@ -553,6 +553,18 @@ function addon:OptionsTable()
 										desc = L.opt_saveBonusRolls_Desc,
 										type = "toggle",
 									},
+									sendSessionResponses = {
+										order = 3.4,
+										name = L.opt_sendSessionResponses_name,
+										desc = L.opt_sendSessionResponses_desc,
+										type = "toggle",
+									},
+									saveSessionResponses = {
+										order = 3.5,
+										name = L.opt_saveSessionResponses_name,
+										desc = L.opt_saveSessionResponses_desc,
+										type = "toggle",
+									},
 									header = {
 										order = 4,
 										type = "header",

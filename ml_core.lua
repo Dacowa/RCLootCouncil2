@@ -1242,6 +1242,43 @@ end
 
 local history_table = {}
 local historyCounter = 0 -- Used to generate history table entry unique id
+
+--- Collects everyone's response to a session for storage in the loot history.
+--- Only candidates with an actual (numeric) response are included - passes and status texts are not.
+--- The winner's response, note and votes are already on the history entry, so only their ilvl and roll is stored.
+---@param session integer The session to collect responses from.
+---@param winner string The winner of the session.
+---@return table<string, string>? #Candidate name -> response data, or nil if there's none.
+function RCLootCouncilML:GetSessionResponses(session, winner)
+	if not db.sendSessionResponses then return end -- Opt-in due to comms increase
+	if not session then return end
+	local lootTable = addon:GetActiveModule("votingframe"):GetLootTable()
+	local sessionData = lootTable and lootTable[session]
+	if not (sessionData and sessionData.candidates) then return end
+	local sessionResponses = {}
+	local temp = {}
+	for name, data in pairs(sessionData.candidates) do
+		wipe(temp)
+		-- On re-awards the winner's response has been replaced with "AWARDED"; their real response is kept seperately.
+		local response = data.response == "AWARDED" and data.real_response or data.response
+		if addon:UnitIsUnit(name, winner) then
+			temp[1] = data.ilvl or ""
+			temp[2] = data.roll
+		elseif type(response) == "number" then -- An actual response, i.e. not a pass or status text
+			temp[1] = data.ilvl or ""
+			temp[2] = addon.classTagNameToID[data.class] or ""
+			temp[3] = response or ""
+			temp[4] = data.roll or ""
+			temp[5] = data.votes ~= 0 and data.votes or ""
+			temp[6] = data.note or nil -- Submitting an empty note stores it as `false`
+		end
+		if #temp > 0 and temp[1] ~= "" then
+			local player = Player:Get(name)
+			sessionResponses[player:GetForTransmit()] = table.concat(temp, "@")
+		end
+	end
+	return next(sessionResponses) and sessionResponses or nil
+end
 -- REVIEW Updated with recent changes in v2.9+.
 -- This should be refactored in v3.0 as several of the sources are no longer viable, and were ment to be used with ML.
 -- v2.19.0: Boss is included in lootTable, but kept as arg for backwards compatibility.
@@ -1289,6 +1326,7 @@ function RCLootCouncilML:TrackAndLogLoot(winner, link, responseID, boss, reason,
 	history_table["id"]		= GetServerTime().."-"..historyCounter										-- New in v2.7+. A unique id for the history entry.
 	history_table["owner"]			= owner or self.lootTable[session] and self.lootTable[session].owner or winner		-- New in v2.9+.
 	history_table["typeCode"]		= self.lootTable[session] and self.lootTable[session].typeCode					-- New in v2.15+.
+	history_table["SR"] 			= self:GetSessionResponses(session, winner)												-- New in v3.23+.
 
 	historyCounter = historyCounter + 1
 

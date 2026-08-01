@@ -328,5 +328,28 @@ Compat.list = {
 			addon.db.global.cache = {}
 			addon.db.global.playerCache = {}
 		end
+	},
+	{
+		-- People might upgrade late and receive sessionData which would get stored raw in the history
+		name = "Session data convertion",
+		version = "3.23.0",
+		func = function ()
+			local LH = addon:GetActiveModule("history")
+			local count = 0
+			for _, factionrealm in pairs(addon.lootDB.sv.factionrealm) do
+				for _, data in pairs(factionrealm) do
+					for i = #data, 1, -1 do
+						if data[i].SR then
+							count = count + 1
+							LH:DecodeSessionResponses(data[i])
+							data[i].SR = nil
+						end
+					end
+				end
+			end
+			if count > 0 then
+				addon.Log:D(format("Cleaned %d occurrences of SR in history", count))
+			end
+		end
 	}
 }
