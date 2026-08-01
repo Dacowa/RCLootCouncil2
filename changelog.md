@@ -1,3 +1,9 @@
+## Changes
+
+### Simulationcraft integration
+
+If you have Simulationcraft installed and run the `/simc` command during a RCLootCouncil session, all items in the session are now included in the Simulationcraft output!
+
 # 3.22.1
 
 ## Bugfixes

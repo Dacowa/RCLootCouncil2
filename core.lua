@@ -272,7 +272,7 @@ function RCLootCouncil:OnInitialize()
 
 	-- Add logged in message in the log
 	self.Log("Logged In")
-	self:ModulesOnInitialize()
+	self:InitializeModules()
 end
 
 function RCLootCouncil:OnEnable()
@@ -340,7 +340,7 @@ function RCLootCouncil:OnEnable()
 	local filterFunc = function(_, event, msg, player, ...) return strfind(msg, "[[RCLootCouncil]]:") end
 	ChatFrame_AddMessageEventFilter("CHAT_MSG_WHISPER_INFORM", filterFunc)
 	self:CouncilChanged() -- Call to initialize council
-	self:ModulesOnEnable()
+	self:EnableModules()
 	-- Print unknown module versions
 	self:ScheduleTimer(function()
 		for name, module in self:IterateModules() do
@@ -1203,8 +1203,9 @@ end
 -- v2.15 The current implementation ensures this only gets called when all items are cached - this function relies on that!
 function RCLootCouncil:PrepareLootTable(lootTable)
 	for ses, v in pairs(lootTable) do
+		v.string = ItemUtils:UncleanItemString(v.string)
 		local _, link, rarity, ilvl, _, _, subType, _, equipLoc, texture, _, typeID, subTypeID, bindType, _, _, _ =
-						C_Item.GetItemInfo(ItemUtils:UncleanItemString(v.string))
+						C_Item.GetItemInfo(v.string)
 		local itemID = C_Item.GetItemInfoInstant(link)
 		v.link = link
 		v.itemID = itemID
