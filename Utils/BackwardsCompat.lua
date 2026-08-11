@@ -336,7 +336,7 @@ Compat.list = {
 		func = function ()
 			local LH = addon:GetActiveModule("history")
 			local count = 0
-			for _, factionrealm in pairs(addon.lootDB.sv.factionrealm) do
+			for _, factionrealm in pairs(addon.lootDB.sv.factionrealm or {}) do
 				for _, data in pairs(factionrealm) do
 					for i = #data, 1, -1 do
 						if data[i].SR then
