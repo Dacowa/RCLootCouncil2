@@ -278,6 +278,7 @@ end
 
 function RCVotingFrame:ReceiveLootTable(lt)
 	self.nonTradeablesButtons = self.nonTradeablesButtons or {}
+	self.delayedLootAcks = self.delayedLootAcks or {}
 	self:HideNonTradeables()
 	self.numNonTradeables = 0
 	for _, v in ipairs(addon.nonTradeables or {}) do -- We might have received some before getting the lootTable
@@ -2413,9 +2414,19 @@ do
 	local info = MSA_DropDownMenu_CreateInfo() -- Efficiency :)
 	function RCVotingFrame.RightClickMenu(menu, level)
 		if not addon.isMasterLooter then return end
+		if not menu or not level or not RCVotingFrame.rightClickEntries or not RCVotingFrame.rightClickEntries[level] then
+			return
+		end
 
 		local candidateName = menu.name
+		if not candidateName or not lootTable[session] or not lootTable[session].candidates then
+			return
+		end
+
 		local data = lootTable[session].candidates[candidateName] -- Shorthand
+		if not data then
+			return
+		end
 
 		local value = _G.MSA_DROPDOWNMENU_MENU_VALUE
 		for _, entry in ipairs(RCVotingFrame.rightClickEntries[level]) do
