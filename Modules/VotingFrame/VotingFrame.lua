@@ -1199,6 +1199,10 @@ function RCVotingFrame:GetFrame()
 		local st = LibStub("ScrollingTable"):CreateST(self.scrollCols, NUM_ROWS, ROW_HEIGHT,
 			{ ["r"] = 1.0, ["g"] = 0.9, ["b"] = 0.0, ["a"] = 0.5, }, f.content)
 		st.frame:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 10, 10)
+		if not menuFrame then
+			menuFrame = _G.MSA_DropDownMenu_Create("RCLootCouncil_VotingFrame_RightclickMenu", UIParent)
+			_G.MSA_DropDownMenu_Initialize(menuFrame, self.RightClickMenu, "MENU")
+		end
 		st:RegisterEvents({
 			["OnClick"] = function(rowFrame, cellFrame, data, cols, row, realrow, column, table, button, ...)
 				if button == "RightButton" and row then
