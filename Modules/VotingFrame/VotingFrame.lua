@@ -72,7 +72,7 @@ function RCVotingFrame:OnInitialize()
 		{ name = _G.NAME,            DoCellUpdate = RCVotingFrame.SetCellName,     colName = "name",     defaultsort = 1,       width = 120, },                 -- 2 Candidate Name
 		{ name = _G.RANK,            DoCellUpdate = RCVotingFrame.SetCellRank,     colName = "rank",     sortnext = "response", width = 95,       comparesort = GuildRankSort, }, -- 3 Guild rank
 		{ name = _G.ROLE,            DoCellUpdate = RCVotingFrame.SetCellRole,     colName = "role",     sortnext = "response", width = 55, },                  -- 4 Role
-		{ name = L["Response"],      DoCellUpdate = RCVotingFrame.SetCellResponse, colName = "response", sortnext = "roll",     width = 240,      comparesort = ResponseSort, }, -- 5 Response
+		{ name = L["Response"],      DoCellUpdate = RCVotingFrame.SetCellResponse, colName = "response", sortnext = "priority", width = 240,      comparesort = ResponseSort, }, -- 5 Response
 		{ name = _G.ITEM_LEVEL_ABBR, DoCellUpdate = RCVotingFrame.SetCellIlvl,     colName = "ilvl",     sortnext = "diff",     width = 45, },                  -- 6 Total ilvl
 		{ name = L["Diff"],          DoCellUpdate = RCVotingFrame.SetCellDiff,     colName = "diff",     width = 40, },                                         -- 7 ilvl difference
 		{ name = L["g1"],            DoCellUpdate = RCVotingFrame.SetCellGear,     colName = "gear1",    sortnext = "response", width = 20,       align = "CENTER", }, -- 8 Current gear 1
@@ -80,8 +80,8 @@ function RCVotingFrame:OnInitialize()
 		{ name = L["Votes"],         DoCellUpdate = RCVotingFrame.SetCellVotes,    colName = "votes",    sortnext = "diff",     width = 50,       align = "CENTER", }, -- 10 Number of votes
 		{ name = L["Vote"],          DoCellUpdate = RCVotingFrame.SetCellVote,     colName = "vote",     sortnext = "votes",    width = 60,       align = "CENTER", }, -- 11 Vote button
 		{ name = L["Notes"],         DoCellUpdate = RCVotingFrame.SetCellNote,     colName = "note",     width = 50,            align = "CENTER", },            -- 12 Note icon
-		{ name = _G.ROLL,            DoCellUpdate = RCVotingFrame.SetCellRoll,     colName = "roll",     sortnext = "votes",    width = 50,       align = "CENTER", }, -- 13 Roll
-		{ name = "Priority",         DoCellUpdate = RCVotingFrame.SetCellPriority, colName = "priority", sortnext = "votes",    width = 60,       align = "CENTER", }, -- 14 Loot Priority (S2)
+		{ name = _G.ROLL,            DoCellUpdate = RCVotingFrame.SetCellRoll,     colName = "roll",     sortnext = "priority", width = 50,       align = "CENTER", }, -- 13 Roll
+		{ name = "Priority",         DoCellUpdate = RCVotingFrame.SetCellPriority, colName = "priority", defaultsort = 2,     sortnext = "roll",    comparesort = PrioritySort, width = 60, align = "CENTER", }, -- 14 Loot Priority (S2)
 		-- { name = "",				DoCellUpdate = RCVotingFrame.SetCellCorruption, colName = "corruption", sortnext = 10, width = 30, align = "CENTER",},					-- 14 Corruption (Patch 8.3)
 	}
 	-- The actual table being worked on, new entries should be added to this table "tinsert(RCVotingFrame.scrollCols, data)"
@@ -1058,13 +1058,17 @@ function RCVotingFrame:SwitchSession(s)
 
 	self:UpdateSessionButtons()
 
-	-- Since we switched sessions, we want to sort by response
-	local j = 1
+	-- Season 2: default to priority, then actual roll, otherwise keep the regular response sorting.
+	local responseIndex = self:GetColumnIndex("response")
+	local priorityIndex = self:GetColumnIndex("priority")
 	for i in ipairs(self.frame.st.cols) do
 		self.frame.st.cols[i].sort = nil
-		if self.frame.st.cols[i].colName == "response" then j = i end
 	end
-	self.frame.st.cols[j].sort = 1
+	if db and db.season2Enabled then
+		if priorityIndex then self.frame.st.cols[priorityIndex].sort = 2 end
+	else
+		if responseIndex then self.frame.st.cols[responseIndex].sort = 1 end
+	end
 	FauxScrollFrame_OnVerticalScroll(self.frame.st.scrollframe, 0, self.frame.st.rowHeight,
 		function() self.frame.st:Refresh() end)                                                                                  -- Reset scrolling to 0
 	self:Update(true)
@@ -1857,11 +1861,12 @@ function RCVotingFrame.SetCellPriority(rowFrame, frame, data, cols, row, realrow
 	
 	local name = data[realrow].name
 	local LootPriority = addon.Require "Data.LootPriority"
-	local priorityStr = LootPriority:GetPriorityString(name)
+	local priorityValue = LootPriority:GetPriorityRoll(name) or 0
+	local priorityStr = tostring(priorityValue)
 	
 	frame.text:SetText(priorityStr)
 	frame.text:SetTextColor(1, 1, 1, 1) -- White text
-	data[realrow].cols[column].value = LootPriority:GetItemsWon(name) or 0
+	data[realrow].cols[column].value = priorityValue
 end
 
 function RCVotingFrame.filterFunc(table, row)
@@ -1902,6 +1907,44 @@ function RCVotingFrame.filterFunc(table, row)
 		return db.modules["RCVotingFrame"].filters[response]
 	else -- Filter out the status texts
 		return db.modules["RCVotingFrame"].filters["STATUS"]
+	end
+end
+
+function PrioritySort(table, rowa, rowb, sortbycol)
+	local column = table.cols[sortbycol]
+	local a, b = table:GetRow(rowa), table:GetRow(rowb)
+	if not (a and b) then return false end
+
+	local LootPriority = addon.Require "Data.LootPriority"
+	local prioA = (a and a.name and LootPriority:GetPriorityRoll(a.name)) or 0
+	local prioB = (b and b.name and LootPriority:GetPriorityRoll(b.name)) or 0
+
+	if prioA == prioB then
+		local rollA = (lootTable[session].candidates[a.name] and lootTable[session].candidates[a.name].roll) or 0
+		local rollB = (lootTable[session].candidates[b.name] and lootTable[session].candidates[b.name].roll) or 0
+		if column.sortnext then
+			local nextcol = table.cols[column.sortnext]
+			if nextcol and not nextcol.sort then
+				if nextcol.comparesort then
+					return nextcol.comparesort(table, rowa, rowb, column.sortnext)
+				else
+					return table:CompareSort(rowa, rowb, column.sortnext)
+				end
+			end
+		end
+		local direction = column.sort or column.defaultsort or 1
+		if direction == 1 then
+			return rollA < rollB
+		else
+			return rollA > rollB
+		end
+	end
+
+	local direction = column.sort or column.defaultsort or 1
+	if direction == 1 then
+		return prioA < prioB
+	else
+		return prioA > prioB
 	end
 end
 
