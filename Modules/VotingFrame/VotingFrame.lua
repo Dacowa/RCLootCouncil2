@@ -249,11 +249,13 @@ end
 function RCVotingFrame:Hide()
 	addon.Log("Hide VotingFrame")
 	needUpdate = false
-	self.frame.moreInfo:Hide()
+	if not self.frame then return end
+	if self.frame.moreInfo then self.frame.moreInfo:Hide() end
 	self.frame:Hide()
 end
 
 function RCVotingFrame:Show()
+	if not self.frame then self.frame = self:GetFrame() end
 	if self.frame and lootTable[session] then
 		if self:HasUnawardedItems() then active = true end
 		self.frame:Show()
@@ -392,12 +394,23 @@ function RCVotingFrame:SetupSession(session, t)
 	end
 
 	-- Init session toggle
-	sessionButtons[session] = self:UpdateSessionButton(session, t.texture, t.link, t.awarded)
-	sessionButtons[session]:Show()
+	sessionButtons = sessionButtons or {}
+	local btn = self:UpdateSessionButton(session, t.texture, t.link, t.awarded)
+	if not btn then
+		if not self.frame then self.frame = self:GetFrame() end
+		if self.frame and self.frame.sessionToggleFrame then
+			btn = addon.UI:NewNamed("IconBordered", self.frame.sessionToggleFrame, "RCSessionButton" .. session, t.texture)
+		end
+	end
+	if btn then
+		sessionButtons[session] = btn
+		btn:Show()
+	end
 end
 
 function RCVotingFrame:Setup(table)
 	--lootTable[session] = {bagged, lootSlot, awarded, name, link, quality, ilvl, type, subType, equipLoc, texture, boe}
+	if not self.frame then self.frame = self:GetFrame() end
 	for session, t in ipairs(table) do -- and build the rest (candidates)
 		if not t.added then
 			self:SetupSession(session, t)
@@ -405,10 +418,12 @@ function RCVotingFrame:Setup(table)
 	end
 	-- Hide unused session buttons
 	for i = #lootTable + 1, #sessionButtons do
-		sessionButtons[i]:Hide()
+		if sessionButtons[i] then sessionButtons[i]:Hide() end
 	end
 	session = 1
-	self.frame.st:SetData(self:BuildSTRows())
+	if self.frame and self.frame.st then
+		self.frame.st:SetData(self:BuildSTRows())
+	end
 	self:SwitchSession(session)
 	if addon.isMasterLooter and db.autoAddRolls then
 		self:DoAllRandomRolls()
@@ -1506,9 +1521,15 @@ function RCVotingFrame:UpdateSessionButtons()
 end
 
 function RCVotingFrame:UpdateSessionButton(i, texture, link, awarded)
+	if not self.frame or not self.frame.sessionToggleFrame then
+		self.frame = self:GetFrame()
+	end
+	if not self.frame or not self.frame.sessionToggleFrame then
+		return nil
+	end
+
 	local btn = sessionButtons[i]
 	if not btn then -- create the button
-		if not self.frame then self.frame = self:GetFrame() end
 		btn = addon.UI:NewNamed("IconBordered", self.frame.sessionToggleFrame, "RCSessionButton" .. i, texture)
 		if i == 1 then
 			btn:SetPoint("TOPRIGHT", self.frame.sessionToggleFrame)
@@ -1523,6 +1544,7 @@ function RCVotingFrame:UpdateSessionButton(i, texture, link, awarded)
 		btn.check:SetDesaturated(true)
 		btn.check:SetAllPoints()
 		btn.check:Hide()
+		sessionButtons[i] = btn
 	end
 	-- then update it
 	btn:SetNormalTexture(texture or "Interface\\InventoryItems\\WoWUnknownItem01")
