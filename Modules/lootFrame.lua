@@ -10,6 +10,7 @@ local LootFrame = addon:NewModule("RCLootFrame", "AceTimer-3.0", "AceEvent-3.0")
 local L = LibStub("AceLocale-3.0"):GetLocale("RCLootCouncil")
 local ItemUtils = addon.Require "Utils.Item"
 local CommsRestrictions = addon.Require "Services.CommsRestrictions"
+local LootPriority = addon.Require "Data.LootPriority"
 
 local entries = {}
 local ENTRY_HEIGHT = 80
@@ -203,11 +204,14 @@ function LootFrame:OnRoll(entry, button)
 	else
 		addon.Log:D("LootFrame:OnRoll", button)
 		if button == "ROLL" then
+			-- Season 2 rule: the current roll remains a normal 1..100 roll until the award is finalized.
+			-- Decrementing the priority window happens only after the award is processed.
+			local maxRoll = 100
 			-- Need to do system roll and wait for its result.
-			local entryInQueue = {sessions=item.sessions, entry=entry}
+			local entryInQueue = {sessions=item.sessions, entry=entry, maxRoll=maxRoll}
 			tinsert(sessionsWaitingRollResultQueue, entryInQueue)
 			entryInQueue.timer = self:ScheduleTimer("OnRollTimeout", ROLL_TIMEOUT, entryInQueue) -- In case roll result is not received within time limit, discard the result.
-			RandomRoll(1, 100)
+			RandomRoll(1, maxRoll)
 			entry.buttons[1]:Disable() -- Disable "roll" button
 			entry.buttons[2]:Hide() -- Hide pass button
 			-- Hide the frame later
@@ -705,8 +709,11 @@ function LootFrame:CHAT_MSG_SYSTEM(event, msg)
 	local name, roll, low, high = string.match(msg, RANDOM_ROLL_PATTERN)
 	roll, low, high = tonumber(roll), tonumber(low), tonumber(high)
 
-	if name and low == 1 and high == 100 and addon:UnitIsUnit(Ambiguate(name, "short"), "player") and sessionsWaitingRollResultQueue[1] then
+	if name and low == 1 and addon:UnitIsUnit(Ambiguate(name, "short"), "player") and sessionsWaitingRollResultQueue[1] then
 		local entryInQueue = sessionsWaitingRollResultQueue[1]
+		if high ~= entryInQueue.maxRoll then
+			return
+		end
 		tremove(sessionsWaitingRollResultQueue, 1)
 		self:CancelTimer(entryInQueue.timer)
 		local entry = entryInQueue.entry

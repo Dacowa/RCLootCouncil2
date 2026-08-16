@@ -1,14 +1,14 @@
 ## Author: Potdisc
 ## Interface: 120100
 ## Notes: Interface for running a Loot Council v3.23.0
-## Title: RCLootCouncil
+## Title: RCLootCouncil2
 ## Version: 3.23.0
 ## SavedVariables: RCLootCouncilDB, RCLootCouncilLootDB
 ## AllowLoadGameType: standard
 ## OptionalDeps: LibStub, CallbackHandler-1.0, Ace3, lib-st, LibWindow-1.1, LibDialog-1.0, Simulationcraft
 ## X-Curse-Project-ID: 39928
 ## X-Wago-ID: 4N2m8ZGL
-## IconTexture: Interface\AddOns\RCLootCouncil\Media\logo
+## IconTexture: Interface\AddOns\RCLootCouncil2\Media\logo
 ## Category-enUS: Loot
 ## Category-deDE: Beute
 ## Category-esES: Botín
@@ -46,6 +46,7 @@ Classes\Services\CommsRestrictions.lua
 Classes\Services\Comms.lua
 # Classes\Services\SlashCommands.lua # NYI
 Classes\Data\MLDB.lua
+Classes\Data\LootPriority.lua
 Classes\Services\SimCIntegration.lua
 
 core.lua

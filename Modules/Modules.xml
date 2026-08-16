@@ -10,4 +10,5 @@
   <Script file = "History/SessionData.lua" />
   <Script file = "TradeUI.lua" />
   <Script file = "Sync.lua" />
+  <Script file = "LootPriorityUI.lua" />
 </Ui>

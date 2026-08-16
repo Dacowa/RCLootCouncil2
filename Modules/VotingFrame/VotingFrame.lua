@@ -81,6 +81,7 @@ function RCVotingFrame:OnInitialize()
 		{ name = L["Vote"],          DoCellUpdate = RCVotingFrame.SetCellVote,     colName = "vote",     sortnext = "votes",    width = 60,       align = "CENTER", }, -- 11 Vote button
 		{ name = L["Notes"],         DoCellUpdate = RCVotingFrame.SetCellNote,     colName = "note",     width = 50,            align = "CENTER", },            -- 12 Note icon
 		{ name = _G.ROLL,            DoCellUpdate = RCVotingFrame.SetCellRoll,     colName = "roll",     sortnext = "votes",    width = 50,       align = "CENTER", }, -- 13 Roll
+		{ name = "Priority",         DoCellUpdate = RCVotingFrame.SetCellPriority, colName = "priority", sortnext = "votes",    width = 60,       align = "CENTER", }, -- 14 Loot Priority (S2)
 		-- { name = "",				DoCellUpdate = RCVotingFrame.SetCellCorruption, colName = "corruption", sortnext = 10, width = 30, align = "CENTER",},					-- 14 Corruption (Patch 8.3)
 	}
 	-- The actual table being worked on, new entries should be added to this table "tinsert(RCVotingFrame.scrollCols, data)"
@@ -101,6 +102,8 @@ function RCVotingFrame:OnEnable()
 	self:RegisterComms()
 	self:RegisterBucketEvent({ "UNIT_PHASE", "ZONE_CHANGED_NEW_AREA", }, 1, "Update") -- Update "Out of instance" text when any raid members change zone
 	self:RegisterMessage("RCLootTableAdditionsReceived", "OnLootTableAdditionsReceived")
+	self:RegisterMessage("RCLootPriorityUpdated", "OnPriorityUpdated")
+	self:RegisterMessage("RCLootPriorityIDReset", "OnIDReset")
 	db = addon:Getdb()
 	--active = true
 	moreInfo = db.modules["RCVotingFrame"].moreInfo
@@ -776,6 +779,20 @@ function RCVotingFrame:OnLootTableAdditionsReceived(_, lt)
 	self:SwitchSession(session)
 end
 
+function RCVotingFrame:OnPriorityUpdated(_, playerName, itemsWon)
+	-- Update the voting frame display when priorities change
+	if self.frame and self.frame:IsShown() and active then
+		self:ScheduleTimer("Update", 0.1)
+	end
+end
+
+function RCVotingFrame:OnIDReset(_, newID, oldID)
+	-- Update when raid ID resets
+	if self.frame and self.frame:IsShown() and active then
+		self:ScheduleTimer("Update", 0.1)
+	end
+end
+
 function RCVotingFrame:OnRequestVotesReceived(ses)
 	if not lootTable[ses] then return end       -- We might not have lootTable - e.g. if we just reloaded
 	if not addon.isCouncil then return end      -- Only council should be able to request votes
@@ -1345,6 +1362,20 @@ function RCVotingFrame:GetFrame()
 --	b4:Hide() -- hidden by default
 	f.disenchant = b4
 
+	-- Season 2 reset button (ML only)
+	local b5 = addon:CreateButton("Reset Loot ID", f.content)
+	b5:SetPoint("RIGHT", b4, "LEFT", -10, 0)
+	b5:SetScript("OnClick", function()
+		local priorityUI = addon:GetModule("LootPriorityUI", false)
+		if priorityUI and priorityUI.OnResetButtonClick then
+			priorityUI:OnResetButtonClick()
+		end
+	end)
+	b5:SetScript("OnEnter", function() addon:CreateTooltip("Reset the active raid ID and clear all season priority data.") end)
+	b5:SetScript("OnLeave", function() addon:HideTooltip() end)
+	b5:SetShown(addon.isMasterLooter and addon:Getdb().season2Enabled)
+	f.season2ResetBtn = b5
+
 	-- Number of votes
 	local rf = CreateFrame("Frame", nil, f.content)
 	rf:SetWidth(100)
@@ -1815,6 +1846,22 @@ function RCVotingFrame.SetCellRoll(rowFrame, frame, data, cols, row, realrow, co
 	local name = data[realrow].name
 	frame.text:SetText(lootTable[session].candidates[name].roll or "")
 	data[realrow].cols[column].value = lootTable[session].candidates[name].roll or ""
+end
+
+function RCVotingFrame.SetCellPriority(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
+	if not db or not db.season2Enabled then
+		frame.text:SetText("")
+		data[realrow].cols[column].value = ""
+		return
+	end
+	
+	local name = data[realrow].name
+	local LootPriority = addon.Require "Data.LootPriority"
+	local priorityStr = LootPriority:GetPriorityString(name)
+	
+	frame.text:SetText(priorityStr)
+	frame.text:SetTextColor(1, 1, 1, 1) -- White text
+	data[realrow].cols[column].value = LootPriority:GetItemsWon(name) or 0
 end
 
 function RCVotingFrame.filterFunc(table, row)

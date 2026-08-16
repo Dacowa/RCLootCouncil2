@@ -138,6 +138,9 @@ function RCSessionFrame:Update()
 	else
 		self.frame.startBtn:SetText(_G.START)
 	end
+	if self.frame.season2ResetBtn then
+		self.frame.season2ResetBtn:SetShown(addon.isMasterLooter and addon:Getdb().season2Enabled)
+	end
 end
 
 function RCSessionFrame:DeleteItem(session, row)
@@ -250,6 +253,23 @@ function RCSessionFrame:GetFrame()
 		self:Disable()
 	end)
 	f.closeBtn = b2
+
+	-- Season 2 reset button (ML only)
+	local b3 = addon:CreateButton("Reset Loot ID", f.content)
+	b3:SetPoint("LEFT", b2, "RIGHT", 10, 0)
+	b3:SetScript("OnClick", function()
+		local priorityUI = addon:GetModule("LootPriorityUI", false)
+		if priorityUI and priorityUI.OnResetButtonClick then
+			priorityUI:OnResetButtonClick()
+			return
+		end
+		local LootPriority = addon.Require "Data.LootPriority"
+		LootPriority:StartNewID()
+	end)
+	b3:SetScript("OnEnter", function() addon:CreateTooltip("Reset the active raid ID and clear all season priority data.") end)
+	b3:SetScript("OnLeave", function() addon:HideTooltip() end)
+	b3:SetShown(addon.isMasterLooter and addon:Getdb().season2Enabled)
+	f.season2ResetBtn = b3
 
 	local tgl = CreateFrame("CheckButton", f:GetName() .. "Toggle", f.content, "ChatConfigCheckButtonTemplate")
 	tgl:SetPoint("BOTTOMLEFT", b1, "TOPLEFT", 0, 10)

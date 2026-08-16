@@ -118,7 +118,7 @@ local playersData = { -- Update on login/encounter starts. it stores the informa
 
 function RCLootCouncil:OnInitialize()
 	-- IDEA Consider if we want everything on self, or just whatever modules could need.
-	self.version = C_AddOns.GetAddOnMetadata("RCLootCouncil", "Version")
+	self.version = C_AddOns.GetAddOnMetadata(addonname, "Version")
 	self.nnp = false
 	self.debug = false
 	self.tVersion = nil -- String or nil. Indicates test version, which alters stuff like version check. Is appended to 'version', i.e. "version-tVersion" (max 10 letters for stupid security)
@@ -291,19 +291,19 @@ function RCLootCouncil:OnEnable()
 	self.player = Player:Get("player")
 	self.playerName = self.player:GetName() -- TODO Remove
 	-- Fetch version again, as Classic will need to override it with its own version to handle its version checks.
-	local version = C_AddOns.GetAddOnMetadata("RCLootCouncil", "Version")
+	local version = C_AddOns.GetAddOnMetadata(addonname, "Version")
 	self.Log(self.playerName, version, self.tVersion)
 
 	self.EJLatestInstanceID = self:GetEJLatestInstanceID()
 	self:DoChatHook()
 
 	-- register the optionstable
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("RCLootCouncil", function() return self:OptionsTable() end)
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable(addonname, function() return self:OptionsTable() end)
 
 	-- add it to blizz options
-	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("RCLootCouncil", "RCLootCouncil", nil, "settings")
-	self.optionsFrame.ml = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("RCLootCouncil", "Master Looter",
-	                                                                       "RCLootCouncil", "mlSettings")
+	self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonname, addonname, nil, "settings")
+	self.optionsFrame.ml = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonname, "Master Looter",
+	                                                                       addonname, "mlSettings")
 	self.playersData = playersData -- Make it globally available
 
 	self:ScheduleTimer("InitItemStorage", 5, self) -- Delay to have a better change of getting correct item info
@@ -1252,10 +1252,25 @@ end
 -- Sets lootTable[session].autopass = true if an autopass occurs, and informs the user of the change
 -- @param skip Will only auto pass sessions > skip or 0
 function RCLootCouncil:DoAutoPasses(table, skip)
+	-- Manually-added session items (e.g. /rc add) are not real loot-window entries and should remain rollable.
+	-- Season 2: Auto-pass everything if not LootMaster, except active RC roll sessions (marked as noAutopass/isRoll).
+	if db.season2Enabled and db.season2AutoPass and not self.isMasterLooter then
+		for k, v in pairs(table) do
+			local session = v.session or k
+			if session > (skip or 0) and not v.noAutopass and not v.isRoll then
+				self.Log("Season 2 Autopass:", v.link)
+				if not db.silentAutoPass then self:Print(format(L["Autopassed on 'item'"], ItemUtils:GetItemTextWithIcon(v.link))) end
+				v.autopass = true
+			end
+		end
+		return
+	end
+	
+	-- Standard auto-pass logic
 	for k, v in pairs(table) do
 		local session = v.session or k
-		if session > (skip or 0) then
-			if db.autoPass and not v.noAutopass then
+		if session > (skip or 0) and not v.noAutopass then
+			if db.autoPass then
 				if (v.boe and db.autoPassBoE) or not v.boe then
 					if self.AutoPass:AutoPassCheck(v.link, v.equipLoc, v.typeID, v.subTypeID, v.classes) then
 						self.Log("Autopassed on: ", v.link)

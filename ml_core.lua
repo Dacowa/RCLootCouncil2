@@ -41,6 +41,7 @@ local Council = addon.Require "Data.Council"
 local Comms = addon.Require "Services.Comms"
 local TempTable = addon.Require "Utils.TempTable"
 local MLDB = addon.Require "Data.MLDB"
+local LootPriority = addon.Require "Data.LootPriority"
 local ErrorHandler = addon.Require "Services.ErrorHandler"
 local ItemUtils = addon.Require "Utils.Item"
 local subscriptions
@@ -140,6 +141,7 @@ function RCLootCouncilML:AddItem(item, bagged, slotIndex, owner, entry, boss)
 
 	entry.bagged = bagged
 	entry.lootSlot = slotIndex
+	entry.noAutopass = (bagged == false and not slotIndex) and true or nil
 	entry.awarded = false
 	entry.owner = owner or nil
 	entry.boss = boss or addon.bossName
@@ -205,6 +207,12 @@ function RCLootCouncilML:GetLootTableForTransmit(overrideIsSent)
 			ret[k].session = v.session
 			ret[k].boss = v.boss
 			ret[k].owner = v.owner
+			if v.noAutopass ~= nil then
+				ret[k].noAutopass = v.noAutopass
+			end
+			if v.isRoll ~= nil then
+				ret[k].isRoll = v.isRoll
+			end
 		end
 	end
 	return ret
@@ -255,9 +263,14 @@ function RCLootCouncilML:StartSession()
 		return self.Log:d("Data wasn't ready", Council:GetNum())
 	end
 
-
 	if db.sortItems and not self.running then
 		self:SortLootTable(self.lootTable)
+	end
+	if db.season2Enabled then
+		for _, v in ipairs(self.lootTable) do
+			v.noAutopass = true
+			v.isRoll = true
+		end
 	end
 	if self.running then -- We're already running a sessions, so any new items needs to get added
 		-- REVIEW This is not optimal, but will be changed anyway with the planned comms changes for v3.0
@@ -1331,6 +1344,9 @@ function RCLootCouncilML:TrackAndLogLoot(winner, link, responseID, boss, reason,
 	historyCounter = historyCounter + 1
 
 	addon:SendMessage("RCMLLootHistorySend", history_table, winner, responseID, boss, reason, session, candData)
+
+	-- Track loot priority for Season 2 system
+	LootPriority:RecordLootWin(winner, link)
 
 	if db.sendHistory then -- Send it, and let comms handle the logging
 		self:Send(db.sendHistoryToGuildChannel and "guild" or "group", "history", winner, history_table)

@@ -47,6 +47,9 @@ local LOG_METHODS = {
 }
 -- Uppercase variants
 -- Manually defined for EmmyLua
+LOG_METHODS.i = function(self, ...) private:Log(self, "<INFO>", ...) end
+LOG_METHODS.I = LOG_METHODS.i
+LOG_METHODS.Info = LOG_METHODS.i
 LOG_METHODS.M = LOG_METHODS.m
 LOG_METHODS.Message = LOG_METHODS.m
 LOG_METHODS.D = LOG_METHODS.d
