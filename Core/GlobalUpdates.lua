@@ -16,7 +16,21 @@ if not addon.C_Item.GetItemStats then
 	addon.C_Item.GetItemStats = GetItemStats
 end
 
-addon.SendChatMessage = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
+local function SendChatMessageCompat(text, chattype, language, destination)
+	if C_ChatInfo and C_ChatInfo.SendChatMessage then
+		C_ChatInfo.SendChatMessage({
+			text = text,
+			channel = chattype,
+			language = language,
+			target = destination,
+		})
+		return
+	end
+
+	SendChatMessage(text, chattype, language, destination)
+end
+
+addon.SendChatMessage = SendChatMessageCompat
 
 local EnumLootMethod = Enum.LootMethod or {
 	Freeforall = 0,

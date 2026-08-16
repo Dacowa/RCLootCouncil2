@@ -94,7 +94,7 @@ function LootPriorityUI:PerformReset()
 
     -- Announce to group if in raid
     if IsInRaid() then
-        addon:SendChatMessage("Loot Priority Reset! All players start with priority 100", "RAID")
+        addon.SendChatMessage("Loot Priority Reset! All players start with priority 100", "RAID")
     end
 end
 
