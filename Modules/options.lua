@@ -511,6 +511,46 @@ function addon:OptionsTable()
 
 								}
 							},
+							season2Options = {
+								order = 5.5,
+								type = "group",
+								name = "Season 2 - Loot Priority",
+								inline = true,
+								args = {
+									desc = {
+										order = 0,
+										name = "Season 2 Loot Priority System\n\nAutomatically tracks loot per player per raid ID and adjusts priority (roll range) accordingly.",
+										type = "description",
+									},
+									season2Enabled = {
+										order = 1,
+										name = "Enable Season 2 System",
+										desc = "Enable the Season 2 loot priority system. Players who have won items roll with lower numbers.",
+										type = "toggle",
+									},
+									season2AutoPass = {
+										order = 2,
+										name = "Auto-Pass All Items",
+										desc = "All players except the LootMaster automatically pass on loot. Loot is distributed purely by /rnd.",
+										type = "toggle",
+										disabled = function() return not addon.db.profile.season2Enabled end,
+									},
+									season2ShowPriority = {
+										order = 3,
+										name = "Show Priority Column",
+										desc = "Display loot priority in the voting frame (items won and current roll range).",
+										type = "toggle",
+										disabled = function() return not addon.db.profile.season2Enabled end,
+									},
+									season2AutoResetEnabled = {
+										order = 4,
+										name = "Auto-Reset on Wednesday 19:00",
+										desc = "Automatically reset the raid ID every Wednesday at 19:00 UTC. Use manual reset button for immediate reset.",
+										type = "toggle",
+										disabled = function() return not addon.db.profile.season2Enabled end,
+									},
+								}
+							},
 							lootHistoryOptions = {
 								order = 6,
 								type = "group",

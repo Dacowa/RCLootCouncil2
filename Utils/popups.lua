@@ -133,6 +133,28 @@ LibDialog:Register("RCLOOTCOUNCIL_CONFIRM_REANNOUNCE_ALL_ITEMS", {
    show_while_dead = true,
 })
 
+LibDialog:Register("RC_LOOT_PRIORITY_RESET_CONFIRM", {
+   text = "Reset Season 2 loot priority?",
+   on_show = function(self)
+      self.text:SetText("Reset the active raid loot priority to 100 for everyone?")
+   end,
+   buttons = {
+      {
+         text = _G.YES,
+         on_click = function(self, data)
+            if data and data.onAccept then
+               data.onAccept()
+            end
+         end,
+      },
+      {
+         text = _G.NO,
+      },
+   },
+   hide_on_escape = true,
+   show_while_dead = true,
+})
+
 ----------- Common popups ---------------
 LibDialog:Register("RCLOOTCOUNCIL_TRADE_ADD_ITEM", {
    text = "something_went_wrong",

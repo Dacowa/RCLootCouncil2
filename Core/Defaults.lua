@@ -65,6 +65,12 @@ addon.defaults = {
 		autoPassTransmogSource = true,
 		autoPassWeapons = true, -- Auto pass on weapons that can't be used for your class.
 		printResponse = false, -- Print response in chat
+		
+		-- Season 2 - Loot Priority System
+		season2Enabled = true, -- Enable Season 2 loot priority system
+		season2AutoPass = true, -- Auto-pass on all loot except for LootMaster
+		season2ShowPriority = true, -- Show priority in voting frame
+		season2AutoResetEnabled = true, -- Auto-reset loot ID on Wednesdays
 		autoGroupLootGuildGroupOnly = true,
 		-- General - Frame
 		autoOpen = true, -- auto open the voting frame

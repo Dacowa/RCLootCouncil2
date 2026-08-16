@@ -60,6 +60,9 @@ function Log:Format(prefix, ...) private:Log(prefix .. self.prefix, ...) end
 -- Manually defined for EmmyLua
 Log.M = Log.Message
 Log.m = Log.Message
+Log.I = Log.Message
+Log.i = Log.Message
+Log.Info = Log.Message
 Log.D = Log.Debug
 Log.d = Log.Debug
 Log.E = Log.Error
