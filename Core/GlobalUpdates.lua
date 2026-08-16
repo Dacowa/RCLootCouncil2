@@ -18,16 +18,33 @@ end
 
 local function SendChatMessageCompat(text, chattype, language, destination)
 	if C_ChatInfo and C_ChatInfo.SendChatMessage then
-		C_ChatInfo.SendChatMessage({
+		local ok, err = pcall(C_ChatInfo.SendChatMessage, {
 			text = text,
 			channel = chattype,
 			language = language,
 			target = destination,
 		})
-		return
+		if ok then
+			return
+		end
+
+		-- Some WoW builds still expect the legacy signature: text, chattype, language, destination
+		local okLegacy, errLegacy = pcall(C_ChatInfo.SendChatMessage, text, chattype, language, destination)
+		if okLegacy then
+			return
+		end
+
+		-- Fall back to the global API as a last resort.
+		if SendChatMessage then
+			return SendChatMessage(text, chattype, language, destination)
+		end
+
+		error(errLegacy or err or "C_ChatInfo.SendChatMessage failed")
 	end
 
-	SendChatMessage(text, chattype, language, destination)
+	if SendChatMessage then
+		return SendChatMessage(text, chattype, language, destination)
+	end
 end
 
 addon.SendChatMessage = SendChatMessageCompat
