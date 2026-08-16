@@ -275,9 +275,10 @@ function RCVotingFrame:HasUnawardedItems()
 end
 
 function RCVotingFrame:ReceiveLootTable(lt)
+	self.nonTradeablesButtons = self.nonTradeablesButtons or {}
 	self:HideNonTradeables()
 	self.numNonTradeables = 0
-	for _, v in ipairs(addon.nonTradeables) do -- We might have received some before getting the lootTable
+	for _, v in ipairs(addon.nonTradeables or {}) do -- We might have received some before getting the lootTable
 		self:AddNonTradeable(v.owner, v.reason, v.link)
 	end
 	active = true
@@ -1574,7 +1575,10 @@ function RCVotingFrame:AddNonTradeable(owner, reason, link)
 end
 
 function RCVotingFrame:HideNonTradeables()
-	for _, v in ipairs(self.nonTradeablesButtons) do v:Hide() end
+	self.nonTradeablesButtons = self.nonTradeablesButtons or {}
+	for _, v in ipairs(self.nonTradeablesButtons) do
+		if v then v:Hide() end
+	end
 end
 
 ----------------------------------------------------------
