@@ -204,9 +204,12 @@ function LootFrame:OnRoll(entry, button)
 	else
 		addon.Log:D("LootFrame:OnRoll", button)
 		if button == "ROLL" then
-			-- Season 2 rule: the current roll remains a normal 1..100 roll until the award is finalized.
-			-- Decrementing the priority window happens only after the award is processed.
+			local db = addon:Getdb()
 			local maxRoll = 100
+			if db and db.season2Enabled then
+				maxRoll = LootPriority:GetPriorityRoll(addon.playerName) or 100
+				if maxRoll < 1 then maxRoll = 1 end
+			end
 			-- Need to do system roll and wait for its result.
 			local entryInQueue = {sessions=item.sessions, entry=entry, maxRoll=maxRoll}
 			tinsert(sessionsWaitingRollResultQueue, entryInQueue)
