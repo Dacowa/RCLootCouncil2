@@ -80,8 +80,8 @@ function RCVotingFrame:OnInitialize()
 		{ name = L["Votes"],         DoCellUpdate = RCVotingFrame.SetCellVotes,    colName = "votes",    sortnext = "diff",     width = 50,       align = "CENTER", }, -- 10 Number of votes
 		{ name = L["Vote"],          DoCellUpdate = RCVotingFrame.SetCellVote,     colName = "vote",     sortnext = "votes",    width = 60,       align = "CENTER", }, -- 11 Vote button
 		{ name = L["Notes"],         DoCellUpdate = RCVotingFrame.SetCellNote,     colName = "note",     width = 50,            align = "CENTER", },            -- 12 Note icon
-		{ name = _G.ROLL,            DoCellUpdate = RCVotingFrame.SetCellRoll,     colName = "roll",     width = 50,       align = "CENTER", }, -- 13 Roll
-		{ name = "Priority",         DoCellUpdate = RCVotingFrame.SetCellPriority, colName = "priority", defaultsort = 2,     comparesort = PrioritySort, width = 60, align = "CENTER", }, -- 14 Loot Priority (S2)
+		{ name = _G.ROLL,            DoCellUpdate = RCVotingFrame.SetCellRoll,     colName = "roll",     sortnext = "priority", width = 50,       align = "CENTER", }, -- 13 Roll
+		{ name = "Priority",         DoCellUpdate = RCVotingFrame.SetCellPriority, colName = "priority", defaultsort = 2,     sortnext = "roll",    comparesort = PrioritySort, width = 60, align = "CENTER", }, -- 14 Loot Priority (S2)
 		-- { name = "",				DoCellUpdate = RCVotingFrame.SetCellCorruption, colName = "corruption", sortnext = 10, width = 30, align = "CENTER",},					-- 14 Corruption (Patch 8.3)
 	}
 	-- The actual table being worked on, new entries should be added to this table "tinsert(RCVotingFrame.scrollCols, data)"

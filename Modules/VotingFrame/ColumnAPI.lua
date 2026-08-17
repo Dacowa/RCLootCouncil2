@@ -163,7 +163,7 @@ function private:ResolveTarget(scrollCols, target)
 	elseif target == 0 then
 		return 1
 	elseif target > #scrollCols then
-		return #scrollCols
+		return #scrollCols + 1
 	elseif target < 0 then
 		return (#scrollCols + target) % #scrollCols + 1
 	else
@@ -172,17 +172,20 @@ function private:ResolveTarget(scrollCols, target)
 end
 
 function private:InsertColumn(scrollCols, spec, target, position)
-	local insertAt
-	if type(target) == "number" and position == nil then
+	local insertAt = #scrollCols + 1
+	if type(target) == "number" then
 		insertAt = target
+	elseif type(target) == "string" then
+		local targetIndex = RCVotingFrame:GetColumnIndex(target)
+		assert(targetIndex, "Target column was not found")
+		insertAt = targetIndex
 	elseif position == "before" or position == "after" then
 		local targetIndex = RCVotingFrame:GetColumnIndex(target)
 		assert(targetIndex, "Target column was not found")
-		insertAt = targetIndex + (position == "after" and 1 or 0)
-	elseif position == nil then
-		insertAt = #scrollCols + 1
-	else
-		insertAt = #scrollCols + 1
+		insertAt = targetIndex
+	end
+	if position == "after" then
+		insertAt = insertAt + 1
 	end
 	if insertAt < 1 then insertAt = 1 end
 	if insertAt > #scrollCols + 1 then insertAt = #scrollCols + 1 end
@@ -239,8 +242,8 @@ end
 --- Existing sortnext values are resolved to stable numeric targets and circular
 --- references are cleared so sorting cannot recurse indefinitely.
 --- @internal
-function RCVotingFrame:NormalizeColumnLayout()
-	local resolvedCols = {} -- List of columns that have already been checked
+---@param raiseOnCycle boolean? When true, circular references raise an error instead of auto-breaking the chain.
+function RCVotingFrame:NormalizeColumnLayout(raiseOnCycle)
 	local cols = self.scrollCols or {}
 	local function PrintTrace(path, raw)
 		local trace = {}
@@ -251,64 +254,39 @@ function RCVotingFrame:NormalizeColumnLayout()
 		addon:Print("<Error> Circular Sort Path:", table.concat(trace, " -> "))
 	end
 	local function resolve(index, stack, path)
-		if tContains(resolvedCols, index) then return end
 		local col = cols[index]
 		if not col then return end
-		if stack[index] then
-			local startIndex
-			for i = 1, #path do
-				if path[i] == col then
-					startIndex = i
-					break
-				end
-			end
-			if startIndex then
-				local cycleCol = path[#path]
-				if cycleCol then
-					cycleCol.sortnext = nil
-					cycleCol.sortnextRef = nil
-					error(
-						("Circular sortnext reference detected for column %s -> %s"):format(
-							cycleCol.id or cycleCol.colName or
-							tostring(index), stack[startIndex].colName))
-				end
-			end
-			tinsert(resolvedCols, index)
-			return
-		end
-		stack[index] = true
-		tinsert(path, col)
-		local raw = col.sortnextRef
-		if raw == nil then
-			raw = col.sortnext
-		end
-		local target = self:ResolveColumnReference(raw, cols)
-		col.sortnext = nil
-		if target and target >= 1 and target <= #cols and target ~= index then
-			if stack[target] then
-				col.sortnext = nil
-				col.sortnextRef = nil
-				PrintTrace(path, raw)
-				error(("Circular sortnext reference detected for column %s -> %s"):format(col.colName or tostring(index),
-					raw))
-			else
-				col.sortnext = target
-				resolve(target, stack, path)
-			end
-		end
-		stack[index] = nil
-		tinsert(resolvedCols, index)
-		tremove(path)
-	end
-
-	for _, col in ipairs(cols) do
 		local raw = col.sortnextRef
 		if raw == nil then
 			raw = col.sortnext
 		end
 		col.sortnextRef = raw
 		col.sortnext = nil
+		if not raw then return end
+		local target = self:ResolveColumnReference(raw, cols)
+		if not target or target < 1 or target > #cols or target == index then
+			return
+		end
+		if stack[target] then
+			local cycleCol = col
+			cycleCol.sortnext = nil
+			cycleCol.sortnextRef = nil
+			if raiseOnCycle then
+				PrintTrace(path, raw)
+				error(("Circular sortnext reference detected for column %s -> %s"):format(
+					cycleCol.colName or tostring(index),
+					raw))
+			end
+			return
+		end
+		stack[index] = true
+		tinsert(path, col)
+		col.sortnext = target
+		resolve(target, stack, path)
+		stack[index] = nil
+		tremove(path)
 	end
+
 	for i = 1, #cols do
 		resolve(i, {}, {})
 	end
@@ -318,7 +296,7 @@ end
 --- Reapplies the current column layout to the scrolling table.
 --- This normalizes the layout and refreshes the table view after mutations.
 function RCVotingFrame:RefreshColumnLayout()
-	self:NormalizeColumnLayout()
+	self:NormalizeColumnLayout(true)
 	if self.frame and self.frame.st and self.frame.st.SortData then
 		self.frame.st:SetDisplayCols(self.scrollCols)
 		self.frame:SetWidth(self.frame.st.frame:GetWidth() + 20)
