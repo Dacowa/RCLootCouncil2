@@ -1,3 +1,9 @@
+# 3.23.1
+
+## Changes
+
+Updated auto passing with latest Blizzard changes.
+
 # 3.23.0
 
 ## Changes

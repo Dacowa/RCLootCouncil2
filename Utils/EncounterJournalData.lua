@@ -2228,27 +2228,26 @@ _G.RCTrinketSpecs = {
 	-- Temple of Sethraliss Heroic (id: 1030).
 	-- Temple of Sethraliss Mythic (id: 1030).
 	-- Temple of Sethraliss Timewalking (id: 1030).
-	-- Keystone Dungeons Mythic (id: 1319).
 	-- The Tidebound Grotto Normal (id: 1317).
-	[270167] = "7492775070010", -- Wavecaller's Seastone,         	Intellect
+	[270167] = "7492775070010", -- Wavecaller's Seastone,          	Intellect
 	-- The Tidebound Grotto Heroic (id: 1317).
 	-- The Tidebound Grotto Mythic (id: 1317).
 	-- The Tidebound Grotto Looking For Raid (id: 1317).
 	-- The Venomous Abyss Normal (id: 1320).
-	[270161] = "5410771040000", -- Fang of Umbral Malignance,     	Damage, Intellect
-	[270160] = "0241000100024", -- First Mate's Shellward,        	Tank
-	[270168] = "5534773647743", -- Font of Venomous Rage,         	Damage
-	[270164] = "77F7777777777", -- Gebbo's Bottomless Bag,        	All Classes
-	[270169] = "7492775070010", -- Hex Lord's Dooming Idol,       	Intellect
-	[270174] = "0241000100024", -- Idol of the Howling Nexus,     	Tank
-	[270165] = "0365002707767", -- Keeper's Seething Core,        	Strength/Agility
-	[270171] = "2082004030010", -- Preternatural Antivenom,       	Healer
-	[270162] = "2082004030010", -- Soulcoiler Ritual Vessel,      	Healer
-	[270163] = "0000000700067", -- Sszorak's Ferocity,            	Strength
-	[270166] = "0124002007700", -- Vashnik's Sanguine Rancor,     	Damage, Agility
-	[270170] = "5410771040000", -- Vexhul's Everflowing Gland,    	Damage, Intellect
-	[270175] = "0365002707767", -- Voracious Heart of Ula'tek,    	Strength/Agility
-	[270173] = "0124002607743", -- Zul'jin's Guillotine Technique,	Damage, Strength/Agility
+	[270161] = "5410771040000", -- Fang of Umbral Malignance,      	Damage, Intellect
+	[270160] = "0241000100024", -- First Mate's Shellward,         	Tank
+	[270168] = "5534773647743", -- Font of Venomous Rage,          	Damage
+	[270164] = "77F7777777777", -- Gebbo's Bottomless Bag,         	All Classes
+	[270169] = "7492775070010", -- Hex Lord's Dooming Idol,        	Intellect
+	[270174] = "0241000100024", -- Idol of the Howling Nexus,      	Tank
+	[270165] = "0365002707767", -- Keeper's Seething Core,         	Strength/Agility
+	[270171] = "2082004030010", -- Preternatural Antivenom,        	Healer
+	[270162] = "2082004030010", -- Soulcoiler Ritual Vessel,       	Healer
+	[270163] = "0000000700067", -- Sszorak's Ferocity,             	Strength
+	[270166] = "0124002007700", -- Vashnik's Sanguine Rancor,      	Damage, Agility
+	[270170] = "5410771040000", -- Vexhul's Everflowing Gland,     	Damage, Intellect
+	[270175] = "0365002707767", -- Voracious Heart of Ula'tek,     	Strength/Agility
+	[270173] = "0365002707767", -- Zul'jin's Guillotine Technique, 	Strength/Agility
 	-- The Venomous Abyss Heroic (id: 1320).
 	-- The Venomous Abyss Mythic (id: 1320).
 	-- The Venomous Abyss Looking For Raid (id: 1320).
