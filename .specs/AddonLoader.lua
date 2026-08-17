@@ -23,6 +23,9 @@ end
 --- Loads all files specified in a .toc file.
 ---@param file File path to the .toc file
 function Loader.LoadToc(file)
+	if file == "RCLootCouncil.toc" and Loader.file_exists("RCLootCouncil2.toc") then
+		file = "RCLootCouncil2.toc"
+	end
 	local lines = Loader.lines_from(file)
 	local files = {}
 	for _, v in pairs(lines) do
