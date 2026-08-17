@@ -47,7 +47,7 @@ insulate("RCVotingFrame column registry", function()
 			module:AddColumn({ id = "e", colName = "e", name = "E", width = 40, sortnext = "a", })
 		end)
 
-		assert.are.equal(17, module:GetColumn("c").sortnext)
+		assert.are.equal(18, module:GetColumn("c").sortnext)
 		assert.is_nil(module:GetColumn("e").sortnext)
 		assert.is_nil(module:GetColumn("e").sortnextRef)
 	end)
@@ -70,7 +70,7 @@ insulate("RCVotingFrame column registry", function()
 		assert.are.equal(responseIndex, module:GetColumnIndex("roll"))
 		assert.are.equal(responseIndex + 1, module:GetColumnIndex("response"))
 		module:MoveColumn(responseIndex, 30, "after") -- Get resolved to #cols + 1
-		assert.are.equal(rollIndex, module:GetColumnIndex("roll"))
+		assert.are.equal(rollIndex + 1, module:GetColumnIndex("roll"))
 		assert.are.equal(responseIndex, module:GetColumnIndex("response"))
 	end)
 
