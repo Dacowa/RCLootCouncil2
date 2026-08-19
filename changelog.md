@@ -1,3 +1,7 @@
+## Bugfixes
+
+- *Demon Hunters no longer auto passes daggers.*
+
 # 3.23.1
 
 ## Changes
