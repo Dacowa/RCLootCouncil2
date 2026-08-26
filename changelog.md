@@ -1,3 +1,7 @@
+## Bugfixes
+
+- *Fixed using party comms in Delves before a party is made (#278).*
+
 # 3.23.2
 
 ## Changes

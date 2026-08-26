@@ -1561,6 +1561,7 @@ function RCLootCouncil:GetPlayerInfo()
 end
 
 function RCLootCouncil:OnGroupJoined()
+	if C_PartyInfo.IsDelveInProgress and C_PartyInfo.IsDelveInProgress() then return end
 	self:SendPlayerInfo("group")
 end
 
@@ -1673,7 +1674,7 @@ function RCLootCouncil:OnEvent(event, ...)
 				self:SnapshotInstanceData()
 			end
 		end, 5)
-
+		if C_PartyInfo.IsDelveInProgress and C_PartyInfo.IsDelveInProgress() then return end -- Don't do anything in delves
 		if isReload then
 			self.Log("Player relog...")
 
