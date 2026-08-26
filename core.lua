@@ -3217,6 +3217,10 @@ end
 function RCLootCouncil:GetEJLatestInstanceID()
 	local numTiers = EJ_GetNumTiers()
 	if numTiers == 0 then return end
+	-- EJ_SelectTier() overwrites the "EJSelectedTier" cvar, which is how the Adventure Guide
+	-- remembers the player's selected season/expansion across login and reload. Save it here
+	-- and restore it once we're done, so we don't clobber the player's own selection.
+	local previousTier = EJ_GetCurrentTier()
 	EJ_SelectTier(numTiers - (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE and 1 or 0)) -- Last tier is Mythic+
 	local index = 1
 	local instanceId = EJ_GetInstanceByIndex(index, true)
@@ -3229,6 +3233,10 @@ function RCLootCouncil:GetEJLatestInstanceID()
 		else
 			index = nil
 		end
+	end
+
+	if previousTier and previousTier > 0 then
+		EJ_SelectTier(previousTier)
 	end
 
 	if not instanceId then instanceId = 1190 end -- default to Castle Nathria if no ID is found
