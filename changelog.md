@@ -1,3 +1,23 @@
+## Bugfixes
+
+- *Fixed using party comms in Delves before a party is made (#278).*
+
+# 3.23.2
+
+## Changes
+
+Demon Hunters no longer auto passes daggers.
+
+## Bugfixes
+
+- *Fixed issue causing BoE items not to be sent.*
+
+# 3.23.1
+
+## Changes
+
+Updated auto passing with latest Blizzard changes.
+
 # 3.23.0
 
 ## Changes
