@@ -87,6 +87,22 @@ function LootPriority:RecordLootWin(playerName, itemLink)
     addon:SendMessage("RCLootPriorityUpdated", playerName, db.playerStats[playerName])
 end
 
+--- Manually override a player's priority roll value (e.g. to correct a missed auto-reset or roll).
+--- @param playerName string The player to update
+--- @param rollValue number Desired roll value (1-100, where 100 is highest priority)
+function LootPriority:SetPriorityRoll(playerName, rollValue)
+    local db = GetLootPriorityDB()
+    if not db.playerStats then db.playerStats = {} end
+
+    rollValue = math.max(1, math.min(100, math.floor(rollValue)))
+    local itemsWon = 100 - rollValue
+
+    db.playerStats[playerName] = itemsWon
+
+    Log:I("Manually set priority for", playerName, "to roll", rollValue)
+    addon:SendMessage("RCLootPriorityUpdated", playerName, itemsWon)
+end
+
 --- Get the current priority roll number for a player
 --- Priority: /rnd 100 for 0 items, /rnd 99 for 1 item, /rnd 98 for 2 items, etc.
 --- @param playerName string The player to check

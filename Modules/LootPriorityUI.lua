@@ -34,6 +34,7 @@ function LootPriorityUI:OnEnable()
     self:ScheduleRepeatingTimer("CheckForWeeklyReset", 30)
 
     addon:ModuleChatCmd(self, "OnFFACommand", "ffa [item link]", L["chat_commands_ffa"], "ffa")
+    addon:ModuleChatCmd(self, "OnSetPriorityCommand", "priority <player> <value>", L["chat_commands_priority"], "priority")
 
     addon.Log("LootPriorityUI", "enabled")
 end
@@ -184,6 +185,28 @@ function LootPriorityUI:OnFFACommand(itemLink)
 
     addon:Print(msg)
     addon:SendAnnouncement(msg, IsInRaid() and "RAID" or "PARTY")
+end
+
+--- Manually correct a player's priority, e.g. when the weekly auto-reset failed or a roll wasn't tracked.
+-- Usage: /rc priority <player> <value>
+function LootPriorityUI:OnSetPriorityCommand(playerName, value)
+    if not addon.isMasterLooter then
+        addon:Print(L["Only the Master Looter can set player priority"])
+        return
+    end
+
+    local rollValue = tonumber(value)
+    if not playerName or playerName == "" or not rollValue then
+        addon:Print(L["Usage: /rc priority <player> <value>"])
+        return
+    end
+
+    LootPriority:SetPriorityRoll(playerName, rollValue)
+    addon:Print(format(L["Set priority for player to value"], playerName, LootPriority:GetPriorityRoll(playerName)))
+
+    if addon.VotingFrame and addon.VotingFrame:IsShown() then
+        addon:SendMessage("RCLootPriorityVisualUpdate")
+    end
 end
 
 return LootPriorityUI
