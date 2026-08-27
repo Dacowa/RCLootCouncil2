@@ -33,6 +33,8 @@ function LootPriorityUI:OnEnable()
     -- Setup auto-reset timer check (every 30 seconds)
     self:ScheduleRepeatingTimer("CheckForWeeklyReset", 30)
 
+    addon:ModuleChatCmd(self, "OnFFACommand", "ffa [item link]", L["chat_commands_ffa"], "ffa")
+
     addon.Log("LootPriorityUI", "enabled")
 end
 
@@ -104,11 +106,13 @@ function LootPriorityUI:CheckForWeeklyReset()
     if not addon.isMasterLooter then return end
     if not db.season2Enabled or not db.season2AutoResetEnabled then return end
 
-    local date = C_DateAndTime.GetServerTimeLocal()
+    -- GetServerTimeLocal() returns a unix timestamp, not a table, so it must be converted with date("*t", ...)
+    local serverTimeLocal = C_DateAndTime.GetServerTimeLocal()
+    local dateTable = date("*t", serverTimeLocal)
 
-    -- Check if today is Wednesday (server time local; Sunday = 0)
-    local weekday = tonumber(date and date.wday or os.date("%w", GetServerTime()))
-    local hour = tonumber(date and date.hour or os.date("%H", GetServerTime()))
+    -- Check if today is Wednesday (wday: Sunday = 1 ... Saturday = 7)
+    local weekday = dateTable.wday
+    local hour = dateTable.hour
 
     if weekday == 4 and hour == 19 and not self.hasResetThisWeek then
         self:PerformReset()
@@ -164,6 +168,22 @@ function LootPriorityUI:OnPriorityUpdated(message, playerName, itemsWon)
     if addon.VotingFrame and addon.VotingFrame:IsShown() then
         addon:SendMessage("RCLootPriorityVisualUpdate")
     end
+end
+
+--- Announce a Free-For-All roll to the group. Fully separate from the priority system.
+-- Usage: /rc ffa [item link]
+function LootPriorityUI:OnFFACommand(itemLink)
+    if not addon.isMasterLooter then
+        addon:Print(L["Only the Master Looter can start a Free-For-All roll"])
+        return
+    end
+
+    local msg = (itemLink and itemLink ~= "")
+        and format(L["Free-For-All roll announcement with item"], itemLink)
+        or L["Free-For-All roll announcement"]
+
+    addon:Print(msg)
+    addon:SendAnnouncement(msg, IsInRaid() and "RAID" or "PARTY")
 end
 
 return LootPriorityUI
