@@ -187,7 +187,10 @@ function LootPriorityUI:OnFFACommand(itemLink)
     end
 
     addon:GetActiveModule("masterlooter"):AddFFAItem(itemLink, addon.playerName)
-    addon:Print(format(L["Free-For-All roll announcement with item"], itemLink))
+
+    -- addon:Print only shows locally to the ML; broadcast to the raid too so everyone knows it's FFA.
+    local msg = format(L["Free-For-All roll announcement with item"], itemLink)
+    addon:SendAnnouncement(msg, IsInRaid() and "RAID" or "PARTY")
 end
 
 --- Manually correct a player's priority, e.g. when the weekly auto-reset failed or a roll wasn't tracked.
