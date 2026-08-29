@@ -213,6 +213,9 @@ function RCLootCouncilML:GetLootTableForTransmit(overrideIsSent)
 			if v.isRoll ~= nil then
 				ret[k].isRoll = v.isRoll
 			end
+			if v.isFFA ~= nil then
+				ret[k].isFFA = v.isFFA
+			end
 		end
 	end
 	return ret
@@ -312,6 +315,31 @@ function RCLootCouncilML:AddUserItem(item, username)
 		end
 	else
 		addon:Print(format(L["ML_ADD_INVALID_ITEM"], tostring(item)))
+	end
+end
+
+--- Adds an item as Free-For-All: it uses the same roll popup as normal Loot Priority items,
+--- but the roll cap is not limited by anyone's priority - everyone can roll the full 1-100 range.
+function RCLootCouncilML:AddFFAItem(item, username)
+	if not (type(tonumber(item)) == "number" or string.find(item, "item:")) then
+		addon:Print(format(L["ML_ADD_INVALID_ITEM"], tostring(item)))
+		return
+	end
+	self:AddItem(item, false, nil, username)
+	-- Tag the entry before any session-start logic runs, so the flags are included when it's sent out.
+	local entry = self.lootTable[#self.lootTable]
+	entry.isRoll = true
+	entry.noAutopass = true
+	entry.isFFA = true
+
+	if db.autoStart and addon.candidatesInGroup[addon.playerName] and Council:GetNum() > 0 then
+		if db.awardLater then
+			self:DoAwardLater(self.lootTable)
+		else
+			self:StartSession()
+		end
+	else
+		self:ShowSessionFrame(self.lootTable)
 	end
 end
 
@@ -1345,8 +1373,10 @@ function RCLootCouncilML:TrackAndLogLoot(winner, link, responseID, boss, reason,
 
 	addon:SendMessage("RCMLLootHistorySend", history_table, winner, responseID, boss, reason, session, candData)
 
-	-- Track loot priority for Season 2 system
-	LootPriority:RecordLootWin(winner, link)
+	-- Track loot priority for Season 2 system, unless it was a Free-For-All roll (no priority impact)
+	if not (self.lootTable[session] and self.lootTable[session].isFFA) then
+		LootPriority:RecordLootWin(winner, link)
+	end
 
 	if db.sendHistory then -- Send it, and let comms handle the logging
 		self:Send(db.sendHistoryToGuildChannel and "guild" or "group", "history", winner, history_table)

@@ -34,7 +34,7 @@ function LootPriorityUI:OnEnable()
     -- Setup auto-reset timer check (every 30 seconds)
     self:ScheduleRepeatingTimer("CheckForWeeklyReset", 30)
 
-    addon:ModuleChatCmd(self, "OnFFACommand", "ffa [item link]", L["chat_commands_ffa"], "ffa")
+    addon:ModuleChatCmd(self, "OnFFACommand", "ffa <item link>", L["chat_commands_ffa"], "ffa")
     addon:ModuleChatCmd(self, "OnSetPriorityCommand", "priority <player> <value>", L["chat_commands_priority"], "priority")
 
     addon.Log("LootPriorityUI", "enabled")
@@ -172,20 +172,22 @@ function LootPriorityUI:OnPriorityUpdated(message, playerName, itemsWon)
     end
 end
 
---- Announce a Free-For-All roll to the group. Fully separate from the priority system.
--- Usage: /rc ffa [item link]
+--- Start a real roll session for an item, same popup as normal Loot Priority items,
+-- but without the priority roll cap. Fully separate from the priority system.
+-- Usage: /rc ffa <item link>
 function LootPriorityUI:OnFFACommand(itemLink)
     if not addon.isMasterLooter then
         addon:Print(L["Only the Master Looter can start a Free-For-All roll"])
         return
     end
 
-    local msg = (itemLink and itemLink ~= "")
-        and format(L["Free-For-All roll announcement with item"], itemLink)
-        or L["Free-For-All roll announcement"]
+    if not itemLink or itemLink == "" then
+        addon:Print(L["Usage: /rc ffa <item link>"])
+        return
+    end
 
-    addon:Print(msg)
-    addon:SendAnnouncement(msg, IsInRaid() and "RAID" or "PARTY")
+    addon:GetActiveModule("masterlooter"):AddFFAItem(itemLink, addon.playerName)
+    addon:Print(format(L["Free-For-All roll announcement with item"], itemLink))
 end
 
 --- Manually correct a player's priority, e.g. when the weekly auto-reset failed or a roll wasn't tracked.

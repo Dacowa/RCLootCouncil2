@@ -53,6 +53,7 @@ function LootFrame:AddItem (offset, k, item, reRoll)
 		classes = item.classes,
 		sessions = {item.session},
 		isRoll = item.isRoll,
+		isFFA = item.isFFA,
 		owner = item.owner,
 		typeCode = item.typeCode,
 	}
@@ -206,7 +207,7 @@ function LootFrame:OnRoll(entry, button)
 		if button == "ROLL" then
 			local db = addon:Getdb()
 			local maxRoll = 100
-			if db and db.season2Enabled then
+			if db and db.season2Enabled and not item.isFFA then -- FFA items ignore the priority cap
 				maxRoll = LootPriority:GetPriorityRoll(addon.playerName) or 100
 				if maxRoll < 1 then maxRoll = 1 end
 			end
@@ -275,7 +276,8 @@ do
 				entry.icon:SetBorderColor("grey")
 			end
 			entry.item = item
-			entry.itemText:SetText((item.isRoll and (_G.ROLL..": ") or "")..ItemUtils:GetItemTextWithCount(entry.item.link or "error", #entry.item.sessions))
+			local rollLabel = item.isRoll and ((item.isFFA and "FFA " or "") .. _G.ROLL .. ": ") or ""
+			entry.itemText:SetText(rollLabel..ItemUtils:GetItemTextWithCount(entry.item.link or "error", #entry.item.sessions))
 			entry.icon:SetNormalTexture(entry.item.texture or "Interface\\InventoryItems\\WoWUnknownItem01")
 			entry.itemCount:SetText(#entry.item.sessions > 1 and #entry.item.sessions or "")
 			local typeText = addon:GetItemTypeText(item.link, item.subType, item.equipLoc, item.typeID, item.subTypeID, item.classes, item.isTier, item.isRelic)
