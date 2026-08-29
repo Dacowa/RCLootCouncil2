@@ -15,8 +15,9 @@ L["chat tVersion string"] = "|cFF87CEFARCLootCouncil |cFFFFFFFFVersion|cFFFFA500
 L["chat_restrictions_enabled"] = "Chat restrictions are enabled. Cannot use chat commands."
 
 -- Season 2 - Loot Priority / FFA (manually added, not yet in the CurseForge localization table)
-L["chat_commands_ffa"] = "Kündigt der Gruppe einen Free-For-All-Roll an, z.B. '/rc ffa [Gegenstandslink]'"
+L["chat_commands_ffa"] = "Startet eine Free-For-All-Wurf-Session für einen Gegenstand, ohne Prioritätsbegrenzung, z.B. '/rc ffa [Gegenstandslink]'"
 L["chat_commands_priority"] = "Setzt die Priorität eines Spielers manuell, z.B. '/rc priority Spielername 100'"
+L["Usage: /rc ffa <item link>"] = "Benutzung: /rc ffa <Gegenstandslink>"
 L["Only the Master Looter can reset the loot ID"] = "Nur der Beuteverteiler kann die Loot-ID zurücksetzen"
 L["Only the Master Looter can start a Free-For-All roll"] = "Nur der Beuteverteiler kann einen Free-For-All-Roll starten"
 L["Free-For-All roll announcement"] = "Free-For-All! Diese Beute ist frei, würfelt mit /roll darauf!"
