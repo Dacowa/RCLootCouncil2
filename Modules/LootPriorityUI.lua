@@ -9,6 +9,7 @@ local LootPriorityUI = addon:NewModule("LootPriorityUI", "AceEvent-3.0", "AceTim
 --- @type RCLootCouncilLocale
 local L = LibStub("AceLocale-3.0"):GetLocale("RCLootCouncil")
 local LootPriority = addon.Require "Data.LootPriority"
+local Player = addon.Require "Data.Player"
 
 local db
 local resetTimerID = nil
@@ -201,8 +202,12 @@ function LootPriorityUI:OnSetPriorityCommand(playerName, value)
         return
     end
 
-    LootPriority:SetPriorityRoll(playerName, rollValue)
-    addon:Print(format(L["Set priority for player to value"], playerName, LootPriority:GetPriorityRoll(playerName)))
+    -- Resolve to the same Name-Realm key used for candidates elsewhere, otherwise a plain
+    -- name like "Dakova" won't match "Dakova-Realm" and the priority won't visibly update.
+    local resolvedName = Player:Get(playerName):GetName()
+
+    LootPriority:SetPriorityRoll(resolvedName, rollValue)
+    addon:Print(format(L["Set priority for player to value"], resolvedName, LootPriority:GetPriorityRoll(resolvedName)))
 
     if addon.VotingFrame and addon.VotingFrame:IsShown() then
         addon:SendMessage("RCLootPriorityVisualUpdate")

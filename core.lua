@@ -312,6 +312,9 @@ function RCLootCouncil:OnEnable()
 	for event, method in pairs(self.coreEvents) do self:RegisterEvent(event, method) end
 	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 5, "UpdateCandidatesInGroup")
 
+	-- Modules are disabled by default (SetDefaultModuleState(false)); this one needs to run continuously.
+	self:EnableModule("LootPriorityUI")
+
 	if IsInGuild() then
         self.guildName, self.guildRank = GetGuildInfo("player")
         self:ScheduleTimer("SendGuildVerTest", 2) -- send out a version check after a delay
