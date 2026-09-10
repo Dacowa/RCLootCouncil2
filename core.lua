@@ -61,6 +61,7 @@ RCLootCouncil:SetDefaultModuleState(false)
 local Comms = RCLootCouncil.Require "Services.Comms"
 local Council = RCLootCouncil.Require "Data.Council"
 local Player = RCLootCouncil.Require "Data.Player"
+local LootPriority = RCLootCouncil.Require "Data.LootPriority"
 local MLDB = RCLootCouncil.Require "Data.MLDB"
 local TT = RCLootCouncil.Require "Utils.TempTable"
 local ItemUtils = RCLootCouncil.Require "Utils.Item"
@@ -1255,7 +1256,9 @@ end
 function RCLootCouncil:DoAutoPasses(table, skip)
 	-- Manually-added session items (e.g. /rc add) are not real loot-window entries and should remain rollable.
 	-- Season 2: Auto-pass everything if not LootMaster, except active RC roll sessions (marked as noAutopass/isRoll).
-	if db.season2Enabled and db.season2AutoPass and not self.isMasterLooter then
+	-- Uses the ML's mldb-synced setting (not the candidate's own local profile), so everyone in the raid
+	-- behaves consistently - otherwise players with a different local Season 2 setting silently never see the roll window.
+	if self.mldb.season2Enabled and self.mldb.season2AutoPass and not self.isMasterLooter then
 		for k, v in pairs(table) do
 			local session = v.session or k
 			if session > (skip or 0) and not v.noAutopass and not v.isRoll then
@@ -2920,6 +2923,15 @@ function RCLootCouncil:SubscribeToPermanentComms()
 				return self.Log:E(tostring(sender), "sent 'lt_add' but was not ML!")
 			end
 			self:OnLootTableAdditionsReceived(unpack(data))
+		end,
+
+		-- Candidates don't track priority themselves; the ML's copy is authoritative and broadcast on change.
+		lootPriority = function(data, sender)
+			if self.isMasterLooter then return end
+			if not self.Utils:UnitIsUnit(sender, self.masterLooter) then
+				return self.Log:d(tostring(sender) .. " is not ML, but sent lootPriority!")
+			end
+			LootPriority:ApplyReceivedData(unpack(data))
 		end,
 
 		mldb = function(data, sender)
