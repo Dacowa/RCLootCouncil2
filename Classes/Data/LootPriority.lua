@@ -136,6 +136,24 @@ function LootPriority:GetAllPlayerStats()
     return db.playerStats or {}
 end
 
+--- Returns the priority data to broadcast to the raid. Only the Master Looter's copy is authoritative.
+--- @return table
+function LootPriority:GetForTransmit()
+    local db = GetLootPriorityDB()
+    return { currentID = db.currentID, playerStats = db.playerStats or {} }
+end
+
+--- Overwrites local priority data with data received from the Master Looter.
+--- @param data table As returned by `GetForTransmit`.
+function LootPriority:ApplyReceivedData(data)
+    if not data then return end
+    local db = GetLootPriorityDB()
+    db.currentID = data.currentID
+    db.playerStats = data.playerStats or {}
+    Log:D("Applied priority data received from Master Looter. ID:", db.currentID)
+    addon:SendMessage("RCLootPriorityUpdated", nil, 0)
+end
+
 --- Reset tracking (completely wipe current ID and stats)
 function LootPriority:ResetTracking()
     local db = GetLootPriorityDB()

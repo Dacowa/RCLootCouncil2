@@ -34,6 +34,8 @@ local replacements = {
     [magicKey .. "16"] = "color",
     [magicKey .. "17"] = "autoGroupLoot",
     [magicKey .. "18"] = "requireNotes", -- TODO: Duplicate entry, needs removal on patch (not backwards compatible)
+    [magicKey .. "19"] = "season2Enabled",
+    [magicKey .. "20"] = "season2AutoPass",
 }
 
 local replacements_inv = tInvert(replacements)
@@ -152,6 +154,9 @@ function private:BuildMLDB()
         rejectTrade = db.rejectTrade or nil,
         outOfRaid = db.outOfRaid or nil,
         autoGroupLoot = db.autoGroupLoot or nil,
+        -- Season 2 auto-pass must be the same for everyone, so it's ML-controlled rather than per-client.
+        season2Enabled = db.season2Enabled or nil,
+        season2AutoPass = db.season2AutoPass or nil,
     }
     self.isBuilt = true
     return self.mldb

@@ -155,7 +155,12 @@ end
 --- Handle ID reset message
 function LootPriorityUI:OnIDReset(message, newID, oldID)
     self.Log:I("Raid ID has been reset. New ID:", newID)
-    
+
+    -- Candidates don't track priority locally, so the ML must broadcast changes to the group.
+    if addon.isMasterLooter then
+        addon:Send("group", "lootPriority", LootPriority:GetForTransmit())
+    end
+
     -- Update voting frame if visible
     if addon.VotingFrame and addon.VotingFrame:IsShown() then
         addon:SendMessage("RCLootPriorityVisualUpdate")
@@ -165,7 +170,11 @@ end
 --- Handle priority updated message
 function LootPriorityUI:OnPriorityUpdated(message, playerName, itemsWon)
     self.Log:D("Priority updated for", playerName, "Items won:", itemsWon)
-    
+
+    if addon.isMasterLooter then
+        addon:Send("group", "lootPriority", LootPriority:GetForTransmit())
+    end
+
     -- Update voting frame if visible
     if addon.VotingFrame and addon.VotingFrame:IsShown() then
         addon:SendMessage("RCLootPriorityVisualUpdate")
