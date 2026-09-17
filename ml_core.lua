@@ -1376,8 +1376,9 @@ function RCLootCouncilML:TrackAndLogLoot(winner, link, responseID, boss, reason,
 	addon:SendMessage("RCMLLootHistorySend", history_table, winner, responseID, boss, reason, session, candData)
 
 	-- Track loot priority for Season 2 system, unless it was a Free-For-All roll (no priority impact),
-	-- or Personal Loot/non-tradeable loot that was never actually rolled through the priority system.
-	if not (self.lootTable[session] and self.lootTable[session].isFFA) and responseID ~= "PL" and responseID ~= "PL_REJECT" then
+	-- or Personal Loot/Bonus Roll/non-tradeable loot that was never actually rolled through the priority system.
+	if not (self.lootTable[session] and self.lootTable[session].isFFA)
+		and responseID ~= "PL" and responseID ~= "PL_REJECT" and responseID ~= "BONUSROLL" then
 		LootPriority:RecordLootWin(winner, link)
 	end
 
