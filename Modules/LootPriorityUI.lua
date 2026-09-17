@@ -34,7 +34,7 @@ function LootPriorityUI:OnEnable()
     -- Setup auto-reset timer check (every 30 seconds)
     self:ScheduleRepeatingTimer("CheckForWeeklyReset", 30)
 
-    addon:ModuleChatCmd(self, "OnFFACommand", "ffa <item link>", L["chat_commands_ffa"], "ffa")
+    addon:ModuleChatCmd(self, "OnFFACommand", "ffa <item link> [item link] ...", L["chat_commands_ffa"], "ffa")
     addon:ModuleChatCmd(self, "OnSetPriorityCommand", "priority <player> <value>", L["chat_commands_priority"], "priority")
 
     addon.Log("LootPriorityUI", "enabled")
@@ -181,24 +181,46 @@ function LootPriorityUI:OnPriorityUpdated(message, playerName, itemsWon)
     end
 end
 
---- Start a real roll session for an item, same popup as normal Loot Priority items,
+--- Start a real roll session for one or more items, same popup as normal Loot Priority items,
 -- but without the priority roll cap. Fully separate from the priority system.
--- Usage: /rc ffa <item link>
-function LootPriorityUI:OnFFACommand(itemLink)
+-- Usage: /rc ffa <item link> [item link] ...
+function LootPriorityUI:OnFFACommand(...)
     if not addon.isMasterLooter then
         addon:Print(L["Only the Master Looter can start a Free-For-All roll"])
         return
     end
 
-    if not itemLink or itemLink == "" then
+    -- Shift-clicked links entered back-to-back arrive as one connected string; split them apart.
+    -- Plain item IDs have no "|h" and are passed through as-is.
+    local links = {}
+    for _, arg in ipairs({...}) do
+        if arg:find("|h") then
+            for _, link in ipairs(addon:SplitItemLinks({arg})) do
+                table.insert(links, link)
+            end
+        else
+            table.insert(links, arg)
+        end
+    end
+    if #links == 0 then
         addon:Print(L["Usage: /rc ffa <item link>"])
         return
     end
 
-    addon:GetActiveModule("masterlooter"):AddFFAItem(itemLink, addon.playerName)
+    local added = {}
+    for _, itemLink in ipairs(links) do
+        if type(tonumber(itemLink)) == "number" or itemLink:find("item:") then
+            addon:GetActiveModule("masterlooter"):AddFFAItem(itemLink, addon.playerName)
+            table.insert(added, itemLink)
+        else
+            addon:Print(format(L["ML_ADD_INVALID_ITEM"], tostring(itemLink)))
+        end
+    end
+    if #added == 0 then return end
 
     -- addon:Print only shows locally to the ML; broadcast to the raid too so everyone knows it's FFA.
-    local msg = format(L["Free-For-All roll announcement with item"], itemLink)
+    -- One combined announcement for all items, instead of spamming a separate one per item added.
+    local msg = format(L["Free-For-All roll announcement with item"], table.concat(added))
     addon:SendAnnouncement(msg, IsInRaid() and "RAID" or "PARTY")
 end
 
